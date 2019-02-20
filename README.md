@@ -1,18 +1,9 @@
 # autoVSimulator
 
-This is a simulator for autonomous driving.
+This is a simulator for autonomous driving. 
 
 To run the demo,
 >> python main.py
-
-Contributors:
-
-Jianyu Chen
-
-Changliu Liu
-
-MSC, Berkeley
-2016
 
 To start in Windows:
 
@@ -23,3 +14,7 @@ Install Panda3D and set the Anaconda Python as the connected Python: (1)Uncheck 
 Install numpy(using command): pip install numpy
 
 Install cvxopt(using command): conda install -c https://conda.anaconda.org/omnia cvxopt
+
+-----
+
+Based on the simulator developed by Jianyu Chen and Changliu Liu in Berkeley MSC Lab in 2016.
