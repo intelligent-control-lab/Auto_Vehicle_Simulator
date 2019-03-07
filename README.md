@@ -17,4 +17,10 @@ Install cvxopt(using command): conda install -c https://conda.anaconda.org/omnia
 
 -----
 
+Visualization of intention prediction
+
+[![Watch the video](https://img.youtube.com/vi/HenBoL-mchA/0.jpg)](https://youtu.be/HenBoL-mchA)
+
+-----
+
 Based on the simulator developed by Jianyu Chen and Changliu Liu in Berkeley MSC Lab in 2016.
