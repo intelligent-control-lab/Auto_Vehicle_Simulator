@@ -3,7 +3,11 @@
 This is a simulator for autonomous driving. 
 
 To run the demo,
->> python main.py
+```python
+python visualize_ngsim.py
+python first_person_view.py
+python flash_view.py
+```
 
 To start in Windows:
 
