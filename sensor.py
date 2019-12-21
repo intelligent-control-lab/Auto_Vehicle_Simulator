@@ -2,7 +2,7 @@
 # sensor.py
 # this file contains classes to define the functions of a sensor
 #
-# Author: WEI Tianhao
+# Author: Jianyu Chen
 # 2016
 ###############
 
@@ -11,7 +11,7 @@ import math
 
 class basicSensor:
     
-    def __init__(self,game,dT,lane_width):
+    def __init__(self,game):
         self.game=game
         self.Line=self.game.segLine
         self.lines=self.game.lines
@@ -22,11 +22,6 @@ class basicSensor:
         self.isAlign=False
         self.cordNum=0
         self.bias=0
-        #TODO: make dT game frame rate
-        self.dT = dT
-        #TODO: add lane width here, remove from predictor
-        self.lane_width = lane_width
-        self.ngsim_vehicles = dict()
         
     def setVehicle(self,vehicle):
         self.vehicle=vehicle
@@ -95,7 +90,6 @@ class basicSensor:
             angle=-angle
         return angle
 
-
     # get position in road cordination [distanceFromCenterline(left positive), distanceFromStart]
     def getCordPos(self,laneId):
         pos=self.getSelfPos()
@@ -113,9 +107,6 @@ class basicSensor:
     # get self vehicle velocity value in world cord
     def getVelocity(self):
         return self.vehicle.getVelocity()
-
-    def getPos(self):
-        return self.vehicle.getPos()
 
     # get self vehicle velocity value in lane cord
     def getCordVelocity(self,traj):
@@ -156,31 +147,7 @@ class basicSensor:
 
     def getSurroundVehicle(self,num):
         return self.game.vehicles[num]
-
-    def getSurroundVehicles(self):
-        self.surround_vehicles = list()
-        for v in self.game.vehicles:
-            dx = v.getPos() - self.vehicle.getPos()
-            dv = v.getVelocityVector() - self.vehicle.getVelocityVector()
-
-            if dx.length() > 50 or dx.length() < 0.1:
-                continue
-
-            self.surround_vehicles.append(v)
-    
-    def getMeanVel(self):
-        vel = 0
-        for v in self.surround_vehicles:
-            vel += v.getVelocity() / len(self.surround_vehicles)
-        return vel
-
-    def updateNGSIMVehicles(self, r):
-            v_id = r.Vehicle_ID
-            if v_id not in self.ngsim_vehicles.keys():
-                self.ngsim_vehicles[v_id] = r.copy()
-            
-            else:
-                self.ngsim_vehicles[v_id] = r.copy()
             
             
-            
+        
+        

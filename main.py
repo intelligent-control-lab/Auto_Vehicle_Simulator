@@ -13,9 +13,7 @@ from __future__ import division
 import sys
 import direct.directbase.DirectStart
 import numpy as np
-import pandas as pd
 import math
-import time
 
 from direct.showbase.DirectObject import DirectObject
 from direct.showbase.InputStateGlobal import inputState
@@ -56,49 +54,7 @@ from random import *
 
 class Game(DirectObject):
 
-  def read_Holo_data(self):
-    # ego = pd.read_csv('Holo_data/ego_sample.csv')
-    # obs = pd.read_csv('Holo_data/obs_sample.csv',low_memory=False)
-    ego = pd.read_csv('Holo_data/2018-12-04-10-59-21-ego-car-odometry.csv')
-    obs = pd.read_csv('Holo_data/2018-12-04-10-59-21-obstacles.csv',low_memory=False)
-
-    ego = ego.rename(index=str, columns={"header.stamp.secs": "s", "header.stamp.nsecs": "ns", "pose.position":"pos", "pose.orientation":"ori"})
-    ego.pos = ego.apply(lambda x: list(map(float, x.pos[1:-1].split(','))), axis=1)
-    ego.ori = ego.apply(lambda x: list(map(float, x.ori[1:-1].split(','))), axis=1)
-    ego.s = list(map(int, ego['s']))
-    ego.ns = list(map(int, ego['ns']))
-    ego.time = ego.apply(lambda x: x.s - ego.s[0] + x.ns/1e9 , axis=1)
-    ego = ego.drop(['s','ns','pose_covariance'],axis=1)
-    ego.head()
-    ego.pos = ego.pos.apply(np.array)
-    ego.ori = ego.ori.apply(np.array)
-    ego.pos = ego.pos.apply(lambda x: x - ego.pos[0])
-
-    def f2e(f):
-      x,y,z,w = f
-      rol = np.arctan2(2*(w*x + y*z), 1 - 2*(x**2 + y**2))
-      yaw = np.arcsin(2 * (w*y - z*x))
-      pit = np.arctan2(2*(w*z + x*y), 1 - 2*(y**2 + z**2))
-      return [rol, yaw, pit]
-
-    ego.ori = ego.ori.apply(f2e)
-
-    
-    obs = obs.rename(index=str, columns={"header.stamp.secs": "s", "header.stamp.nsecs": "ns"})
-    obs.s = list(map(int, obs['s']))
-    obs.ns = list(map(int, obs['ns']))
-    obs.time = obs.apply(lambda x: x.s - obs.s[0] + x.ns/1e9 , axis=1)
-    obs.iloc[:,0:15]
-    obs = obs.drop(['s','ns'],axis=1)
-    obs = obs[6:]
-
-    self.ego = ego
-    self.obs = obs
-    self.timer = 0
-
   def __init__(self):
-    self.read_Holo_data()
-
     base.setBackgroundColor(0.1, 0.1, 0.8, 1)
     base.setFrameRateMeter(True)
 
@@ -147,28 +103,71 @@ class Game(DirectObject):
     floor1.flattenStrong()'''
 
     # initial automated vehicle
-    self.initAV=[50,0,0]
+    self.initAV=[10,-6,30]
     desiredV=40
-    basicVehicleNum=20
+    surroundingVehicleNum=20
     self.agents=[]
-    self.agents.append(planningAgent(20,5,desiredV,int(math.floor((self.initAV[1]+8)/4)),basicVehicleNum,self.radiu)) # initial agent
+    self.agents.append(cfsAgent(vGain=20,thetaGain=1000,desiredV=desiredV,laneId=0,ffGain=1000,numSurr=surroundingVehicleNum))
+    # self.agents.append(planningAgent(20,5,desiredV,int(math.floor((self.initAV[1]+8)/4)),surroundingVehicleNum,self.radiu)) # initial agent
+    # self.agents.append(previewAgent(20,5,desiredV,int(math.floor((self.initAV[1]+8)/4)))) # ctl test
+    # self.agents.append(autoBrakeAgent(20,5,desiredV)) # ctl test
 
     # initial surrounding vehicle
-    v1=0
-    v2=0
-    v3=0
-    v4=0
+    v1=25
+    v2=25
+    v3=25
+    v4=25
     self.initSV=[]
+    self.initSV.append([50,-6,v1])
+    #self.agents.append(planningAgent(20,5,desiredV,int(math.floor((self.initSV[-1][1]+8)/4)),surroundingVehicleNum,self.radiu)) # initial agent
+    self.agents.append(laneKeepingAgent(20,20,self.initSV[-1][2],int(math.floor((self.initSV[-1][1]+8)/4)))) 
+    self.initSV.append([90,-6,v1])
+    self.agents.append(laneKeepingAgent(20,20,self.initSV[-1][2],int(math.floor((self.initSV[-1][1]+8)/4)))) 
+    self.initSV.append([130,-6,v1])
+    self.agents.append(laneKeepingAgent(20,20,self.initSV[-1][2],int(math.floor((self.initSV[-1][1]+8)/4)))) 
+    self.initSV.append([185,-6,v1])
+    self.agents.append(laneKeepingAgent(20,20,self.initSV[-1][2],int(math.floor((self.initSV[-1][1]+8)/4)))) 
+    self.initSV.append([235,-6,v1])
+    self.agents.append(laneKeepingAgent(20,20,self.initSV[-1][2],int(math.floor((self.initSV[-1][1]+8)/4)))) 
     
-  
+    
+    self.initSV.append([70,-2,v2])
+    self.agents.append(laneKeepingAgent(20,20,self.initSV[-1][2],int(math.floor((self.initSV[-1][1]+8)/4)))) 
+    self.initSV.append([100,-2,v2])
+    self.agents.append(laneKeepingAgent(20,20,self.initSV[-1][2],int(math.floor((self.initSV[-1][1]+8)/4)))) 
+    self.initSV.append([160,-2,v2])
+    self.agents.append(laneKeepingAgent(20,20,self.initSV[-1][2],int(math.floor((self.initSV[-1][1]+8)/4)))) 
+    self.initSV.append([210,-2,v2])
+    self.agents.append(laneKeepingAgent(20,20,self.initSV[-1][2],int(math.floor((self.initSV[-1][1]+8)/4)))) 
+    self.initSV.append([260,-2,v2])
+    self.agents.append(laneKeepingAgent(20,20,self.initSV[-1][2],int(math.floor((self.initSV[-1][1]+8)/4)))) 
+    
+    
+    self.initSV.append([135,2,v3])
+    self.agents.append(laneKeepingAgent(20,20,self.initSV[-1][2],int(math.floor((self.initSV[-1][1]+8)/4)))) 
+    self.initSV.append([185,2,v3])
+    self.agents.append(laneKeepingAgent(20,20,self.initSV[-1][2],int(math.floor((self.initSV[-1][1]+8)/4)))) 
+    self.initSV.append([220,2,v3])
+    self.agents.append(laneKeepingAgent(20,20,self.initSV[-1][2],int(math.floor((self.initSV[-1][1]+8)/4)))) 
+    self.initSV.append([280,2,v3])
+    self.agents.append(laneKeepingAgent(20,20,self.initSV[-1][2],int(math.floor((self.initSV[-1][1]+8)/4)))) 
+    self.initSV.append([313,2,v3])
+    self.agents.append(laneKeepingAgent(20,20,self.initSV[-1][2],int(math.floor((self.initSV[-1][1]+8)/4)))) 
+    
 
-    for i in range(20):
-      self.initSV.append([1000,0,v1])
-      self.agents.append(laneKeepingAgent(20,20,self.initSV[-1][2],int(math.floor((self.initSV[-1][1]+8)/4)))) 
-      
+    self.initSV.append([100,6,v4])
+    self.agents.append(laneKeepingAgent(20,20,self.initSV[-1][2],int(math.floor((self.initSV[-1][1]+8)/4)))) 
+    self.initSV.append([150,6,v4])
+    self.agents.append(laneKeepingAgent(20,20,self.initSV[-1][2],int(math.floor((self.initSV[-1][1]+8)/4)))) 
+    self.initSV.append([200,6,v4])
+    self.agents.append(laneKeepingAgent(20,20,self.initSV[-1][2],int(math.floor((self.initSV[-1][1]+8)/4)))) 
+    self.initSV.append([250,6,v4])
+    self.agents.append(laneKeepingAgent(20,20,self.initSV[-1][2],int(math.floor((self.initSV[-1][1]+8)/4)))) 
+    self.initSV.append([300,6,v4])
+    self.agents.append(laneKeepingAgent(20,20,self.initSV[-1][2],int(math.floor((self.initSV[-1][1]+8)/4)))) 
 
     # initial camera
-    base.cam.setPos(0, -20, 3)
+    base.cam.setPos(0, -20, 4)
     base.cam.lookAt(0, 0, 0)
 
     # Light
@@ -254,51 +253,22 @@ class Game(DirectObject):
     direction=self.vehicles[0].getDirection()
     position=self.vehicles[0].getPosVector()
     #camera
-    base.cam.setPos(position[0]-30*direction[0], position[1]-60*direction[1], 30)
-    base.cam.lookAt(position + LVector3f(0, 0, 0))
+    base.cam.setPos(position[0]-15*direction[0], position[1]-15*direction[1], 4)
+    base.cam.lookAt(position)
 
   # simulation update per step
   def update(self, task):
     dt = globalClock.getDt()
-    # self.vehicles[0].controlInput(self.vehicles[0].agent.doControl())  # agent control
+    self.vehicles[0].controlInput(self.vehicles[0].agent.doControl())  # agent control
     
-    # for i in range(len(self.initSV)):
-    #     self.vehicles[i+1].controlInput(self.vehicles[i+1].agent.doControl()) 
+    for i in range(len(self.initSV)):
+        self.vehicles[i+1].controlInput(self.vehicles[i+1].agent.doControl()) 
     
-    car = self.vehicles[0].yugoNP.parent
-    # print(car.getPos())
-    # print(self.ego.pos[self.timer])
-    p = self.ego.pos[self.timer]
-    p = LPoint3f(p[0], p[1], p[2])
     
-    # car.setPos(p)
-    car.setH(self.ego.ori[self.timer][1])
-    x = self.obs.iloc[self.timer]
-
-    for i in range(0,len(x)//4):
-      if not isinstance(x[i*4+1], str):
-        for j in range(i+1,20):
-          self.vehicles[j].yugoNP.parent.setPos(1000, 0, 0)
-        break
-      pos = list(map(float,x[i*4+1][1:-1].split(',')))
-      shape = list(map(float,x[i*4+3][1:-1].split(',')))
-      yaw = shape[-1]
-
-      p = LPoint3f(-pos[1], pos[0], pos[2])
-      # print(self.vehicles[i].yugoNP.parent.getPos())
-      self.vehicles[i+1].yugoNP.parent.setPos(car.getPos() + p)
-      # print(self.vehicles[i].yugoNP.parent.getPos())
-      # print('---')
-      self.vehicles[i+1].yugoNP.parent.setH(yaw)
-
-
-    self.timer = self.timer + 1
-    
-    # time.sleep(1)
     #self.vehicles[0].processInput(dt,'forward','reverse','turnLeft','turnRight','brake1')  
     #self.vehicles[1].processInput(dt,'For','Back','Lef','Righ','brake2')    # manual control
     #self.world.doPhysics(dt, 10, 0.008)
-    # self.world.doPhysics(1.6)
+    self.world.doPhysics(1.6)
 
     self.updateCamera() 
     
@@ -353,7 +323,7 @@ class Game(DirectObject):
 
     #Adding laneKeeping vehicles
     for i in range(len(self.initSV)):
-        self.vehicles.append(basicVehicle(self,[self.initSV[i][0],self.initSV[i][1],-0.6],self.initSV[i][2],length,width,height,axisDis,wheelDis,radius,wheelH)) # [10,0.1,0.5] is vehicle start position
+        self.vehicles.append(surroundingVehicle(self,[self.initSV[i][0],self.initSV[i][1],-0.6],self.initSV[i][2],length,width,height,axisDis,wheelDis,radius,wheelH)) # [10,0.1,0.5] is vehicle start position
         self.sensors.append(basicSensor(self))  # initial sensor
         self.sensors[i+1].setVehicle(self.vehicles[i+1])
         self.vehicles[i+1].setSensor(self.sensors[i+1])
@@ -372,10 +342,10 @@ class Game(DirectObject):
     self.vehicles[1].setAgent(agent1)'''
     
     #Surrounding vehicles' speed
-    v1=0
-    v2=0
-    v3=0
-    v4=0
+    v1=25
+    v2=25
+    v3=25
+    v4=25
     
     '''self.vehicles.append(basicVehicle(self,[60,-6.1,-0.6],v1))
     self.vehicles.append(basicVehicle(self,[100,-6.1,-0.6],v1))

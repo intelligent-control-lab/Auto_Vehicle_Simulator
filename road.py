@@ -48,6 +48,7 @@ class roadGenerator:
             else:
                 rightPoints.append(wholeSeg[i]-direct*width)
                 leftPoints.append(wholeSeg[i]+direct*width)
+        
 
         self.node = GeomNode('gnode')
 
@@ -66,9 +67,9 @@ class roadGenerator:
             texcoord = GeomVertexWriter(vdata, 'texcoord')
             for i in range(0,texPieceNum+1):
                 vertex.addData3f(leftPoints[texPieceNum*j+i][0],leftPoints[texPieceNum*j+i][1],height)
+                texcoord.addData2f(0, 1/(texPieceNum-1)*i)
                 vertex.addData3f(rightPoints[texPieceNum*j+i][0],rightPoints[texPieceNum*j+i][1],height)
                 texcoord.addData2f(1, 1/(texPieceNum-1)*i)
-                texcoord.addData2f(0, 1/(texPieceNum-1)*i)
             prim = GeomTristrips(Geom.UHStatic)
             for i in range(0,2*texPieceNum+2):
                 prim.addVertex(i)
