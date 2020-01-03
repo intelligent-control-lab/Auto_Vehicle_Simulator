@@ -47,7 +47,7 @@ def embed(Qaug, Q, ni, nj):
 
 def matrixPower(A,n):
     if n == 0:
-        return np.identity(math.sqrt(len(A)))
+        return np.identity(round(math.sqrt(len(A))))
     else:
         newA = A
         for i in range(n-1):
