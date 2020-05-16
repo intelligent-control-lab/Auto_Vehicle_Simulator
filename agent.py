@@ -16,8 +16,9 @@ import optimization as opt
 import copy
 solvers.options['feastol'] = 1e-10
 
-from direct.showbase.ShowBase import ShowBase
+# from direct.showbase.ShowBase import ShowBase
 from panda3d.core import *
+import time
 
 # this is a basic agent structure that generate zero input
 class basicAgent:
@@ -626,13 +627,16 @@ class planningAgent(autoBrakeAgent):
         return self.safetyController()
 
 class cfsAgent(autoBrakeAgent):
+    _set_timer = False
+    _draw_traj = True
     def __init__(self,vGain=50,thetaGain=20,desiredV=25,laneId=0,ffGain=1000,headway=20, numSurr=0):
         super().__init__(vGain,thetaGain,desiredV,laneId,ffGain,headway)
         self.numSurrounding = numSurr
         # for drawing trajectory
-        lines = LineSegs()
-        trajNode = lines.create()
-        self.trajNp = NodePath(trajNode)
+        if self._draw_traj:
+            lines = LineSegs()
+            trajNode = lines.create()
+            self.trajNp = NodePath(trajNode)
         self.traj = None
         self.xrec = None
 
@@ -681,8 +685,11 @@ class cfsAgent(autoBrakeAgent):
         return [acceleration,steerV,0]
 
     def CFSTrajectory(self):
-        self.trajNp.removeNode()    # panda3d draw
-        lines = LineSegs()    # panda3d draw
+        if self._set_timer:
+            start_time = time.perf_counter()
+        if self._draw_traj:
+            self.trajNp.removeNode()    # panda3d draw
+            lines = LineSegs()    # panda3d draw
 
         # Draw reference trajectory
         ego_state = self.getState()
@@ -691,7 +698,7 @@ class cfsAgent(autoBrakeAgent):
             self.xrec = pos
         else:
             self.xrec = self.traj[0]
-        dist = 25
+        dist = 18
         preTraj = self.getPreview(0,dist)
         preTraj = preTraj[1:]
         
@@ -713,39 +720,43 @@ class cfsAgent(autoBrakeAgent):
 
                 # Draw Obstacles
                 '''
-                vh_l = 2.8 + 1.0    # in convex_hull_2d
-                vh_w = 1.2 + 0.6
-                a = vh_l / 2
-                b = vh_w / 2
-                d = np.tan(1.0) * vh_w
-                if trapezoid_orientation[-1] == 0:
-                    v0 = [X[0] + a*V[0] + b*V[1], X[1] + a*V[1] - b*V[0]]
-                    v1 = [X[0] - a*V[0] + b*V[1], X[1] - a*V[1] - b*V[0]]
-                    v2 = [X[0] - a*V[0] - 3*vh_w*V[1], X[1] - a*V[1] + 3*vh_w*V[0]]
-                    v3 = [X[0] + a*V[0] - 3*vh_w*V[1], X[1] + a*V[1] + 3*vh_w*V[0]]
-                    v2 = [v2[0] - 3*vh_w*d*V[0], v2[1] - 3*vh_w*d*V[1]]   # at lane 0
-                    v3 = [v3[0] + 3*vh_w*d*V[0], v3[1] + 3*vh_w*d*V[1]]
-                else:
-                    v0 = [X[0] + a*V[0] + 3*vh_w*V[1], X[1] + a*V[1] - 3*vh_w*V[0]]
-                    v1 = [X[0] - a*V[0] + 3*vh_w*V[1], X[1] - a*V[1] - 3*vh_w*V[0]]
-                    v2 = [X[0] - a*V[0] - b*V[1], X[1] - a*V[1] + b*V[0]]
-                    v3 = [X[0] + a*V[0] - b*V[1], X[1] + a*V[1] + b*V[0]]
-                    v0 = [v0[0] + 3*vh_w*d*V[0], v0[1] + 3*vh_w*d*V[1]]   # at lane 1
-                    v1 = [v1[0] - 3*vh_w*d*V[0], v1[1] - 3*vh_w*d*V[1]]
-                bar = [v0, v1, v2, v3, v0]
-                self.drawTrajectory(bar, lines, -0.8)'''
+                if self._draw_traj:
+                    vh_l = 2.8 + 1.0    # in convex_hull_2d
+                    vh_w = 1.2 + 0.6
+                    a = vh_l / 2
+                    b = vh_w / 2
+                    d = np.tan(1.0) * vh_w
+                    if trapezoid_orientation[-1] == 0:
+                        v0 = [X[0] + a*V[0] + b*V[1], X[1] + a*V[1] - b*V[0]]
+                        v1 = [X[0] - a*V[0] + b*V[1], X[1] - a*V[1] - b*V[0]]
+                        v2 = [X[0] - a*V[0] - 3*vh_w*V[1], X[1] - a*V[1] + 3*vh_w*V[0]]
+                        v3 = [X[0] + a*V[0] - 3*vh_w*V[1], X[1] + a*V[1] + 3*vh_w*V[0]]
+                        v2 = [v2[0] - 3*vh_w*d*V[0], v2[1] - 3*vh_w*d*V[1]]   # at lane 0
+                        v3 = [v3[0] + 3*vh_w*d*V[0], v3[1] + 3*vh_w*d*V[1]]
+                    else:
+                        v0 = [X[0] + a*V[0] + 3*vh_w*V[1], X[1] + a*V[1] - 3*vh_w*V[0]]
+                        v1 = [X[0] - a*V[0] + 3*vh_w*V[1], X[1] - a*V[1] - 3*vh_w*V[0]]
+                        v2 = [X[0] - a*V[0] - b*V[1], X[1] - a*V[1] + b*V[0]]
+                        v3 = [X[0] + a*V[0] - b*V[1], X[1] + a*V[1] + b*V[0]]
+                        v0 = [v0[0] + 3*vh_w*d*V[0], v0[1] + 3*vh_w*d*V[1]]   # at lane 1
+                        v1 = [v1[0] - 3*vh_w*d*V[0], v1[1] - 3*vh_w*d*V[1]]
+                    bar = [v0, v1, v2, v3, v0]
+                    self.drawTrajectory(bar, lines, -0.8)
+                '''
 
         newTraj = opt.CFS(pos, preTraj, obstacles, cq = [0.05,0,0], cs = [0.05,0.05,7], theta = 1.2,
         minimal_dis = 2.4, maxIter = 10, SCCFS = True, slack_w = 1.3, stop_eps = 0.1,
          trapezoid_orientation = trapezoid_orientation, xrec = self.xrec)
         
         # Draw CFS output trajectory
-        # self.drawTrajectory(preTraj, lines, -0.8)
-        self.drawTrajectory(newTraj, lines, -0.8)
-        trajNode = lines.create()    # panda3d draw
-        self.trajNp = NodePath(trajNode)    # panda3d draw
-        self.trajNp.reparentTo(render)    # panda3d draw
-
+        if self._draw_traj:
+            # self.drawTrajectory(preTraj, lines, -0.8)
+            self.drawTrajectory(newTraj, lines, -0.8)
+            trajNode = lines.create()    # panda3d draw
+            self.trajNp = NodePath(trajNode)    # panda3d draw
+            self.trajNp.reparentTo(render)    # panda3d draw
+        if self._set_timer:
+            print("plan time : ", time.perf_counter()-start_time)
         return newTraj
 
     def doControl(self):        

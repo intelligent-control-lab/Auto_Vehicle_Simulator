@@ -260,6 +260,7 @@ def convex_hull_2d_2_feasible_set(x_r, obstacles = [], t = 0, obs_velocity = [0,
         # obstacle position and velocity, for the simulator
         if isinstance(obstacles[0][0], (list, np.ndarray)):
             [X,V] = obstacles[i]
+            X+=[dx, dy] # predict obstacle position at every horizon
             if theta == 0:
                 v0 = [X[0] + a*V[0] + b*V[1], X[1] + a*V[1] - b*V[0]]   # upper right
                 v1 = [X[0] - a*V[0] + b*V[1], X[1] - a*V[1] - b*V[0]]   # lower right

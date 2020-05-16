@@ -285,7 +285,7 @@ class Game(DirectObject):
 
     # World
     self.debugNP = self.worldNP.attachNewNode(BulletDebugNode('Debug'))
-    self.debugNP.show()
+    # self.debugNP.show()
 
     self.world = BulletWorld()
     self.world.setGravity(Vec3(0, 0, -9.81))
