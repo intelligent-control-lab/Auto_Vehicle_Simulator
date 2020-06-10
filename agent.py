@@ -628,7 +628,7 @@ class planningAgent(autoBrakeAgent):
 
 class cfsAgent(autoBrakeAgent):
     _set_timer = False
-    _draw_traj = True
+    _draw_traj = False
     def __init__(self,vGain=50,thetaGain=20,desiredV=25,laneId=0,ffGain=1000,headway=20, numSurr=0):
         super().__init__(vGain,thetaGain,desiredV,laneId,ffGain,headway)
         self.numSurrounding = numSurr

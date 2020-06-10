@@ -103,68 +103,16 @@ class Game(DirectObject):
     floor1.flattenStrong()'''
 
     # initial automated vehicle
-    self.initAV=[10,-6,30]
     desiredV=40
-    surroundingVehicleNum=20
+    self.initAV=[]
     self.agents=[]
-    self.agents.append(cfsAgent(vGain=20,thetaGain=1000,desiredV=desiredV,laneId=0,ffGain=1000,numSurr=surroundingVehicleNum))
+    self.initAV.append([10,-6,30])
+    self.agents.append(cfsAgent(vGain=20,thetaGain=1000,desiredV=desiredV,laneId=0,ffGain=1000))
+    self.initAV.append([10,-2,30])
+    self.agents.append(cfsAgent(vGain=20,thetaGain=1000,desiredV=desiredV,laneId=1,ffGain=1000))
     # self.agents.append(planningAgent(20,5,desiredV,int(math.floor((self.initAV[1]+8)/4)),surroundingVehicleNum,self.radiu)) # initial agent
     # self.agents.append(previewAgent(20,5,desiredV,int(math.floor((self.initAV[1]+8)/4)))) # ctl test
     # self.agents.append(autoBrakeAgent(20,5,desiredV)) # ctl test
-
-    # initial surrounding vehicle
-    v1=25
-    v2=25
-    v3=25
-    v4=25
-    self.initSV=[]
-    self.initSV.append([50,-6,v1])
-    #self.agents.append(planningAgent(20,5,desiredV,int(math.floor((self.initSV[-1][1]+8)/4)),surroundingVehicleNum,self.radiu)) # initial agent
-    self.agents.append(laneKeepingAgent(20,20,self.initSV[-1][2],int(math.floor((self.initSV[-1][1]+8)/4)))) 
-    self.initSV.append([90,-6,v1])
-    self.agents.append(laneKeepingAgent(20,20,self.initSV[-1][2],int(math.floor((self.initSV[-1][1]+8)/4)))) 
-    self.initSV.append([130,-6,v1])
-    self.agents.append(laneKeepingAgent(20,20,self.initSV[-1][2],int(math.floor((self.initSV[-1][1]+8)/4)))) 
-    self.initSV.append([185,-6,v1])
-    self.agents.append(laneKeepingAgent(20,20,self.initSV[-1][2],int(math.floor((self.initSV[-1][1]+8)/4)))) 
-    self.initSV.append([235,-6,v1])
-    self.agents.append(laneKeepingAgent(20,20,self.initSV[-1][2],int(math.floor((self.initSV[-1][1]+8)/4)))) 
-    
-    
-    self.initSV.append([70,-2,v2])
-    self.agents.append(laneKeepingAgent(20,20,self.initSV[-1][2],int(math.floor((self.initSV[-1][1]+8)/4)))) 
-    self.initSV.append([100,-2,v2])
-    self.agents.append(laneKeepingAgent(20,20,self.initSV[-1][2],int(math.floor((self.initSV[-1][1]+8)/4)))) 
-    self.initSV.append([160,-2,v2])
-    self.agents.append(laneKeepingAgent(20,20,self.initSV[-1][2],int(math.floor((self.initSV[-1][1]+8)/4)))) 
-    self.initSV.append([210,-2,v2])
-    self.agents.append(laneKeepingAgent(20,20,self.initSV[-1][2],int(math.floor((self.initSV[-1][1]+8)/4)))) 
-    self.initSV.append([260,-2,v2])
-    self.agents.append(laneKeepingAgent(20,20,self.initSV[-1][2],int(math.floor((self.initSV[-1][1]+8)/4)))) 
-    
-    
-    self.initSV.append([135,2,v3])
-    self.agents.append(laneKeepingAgent(20,20,self.initSV[-1][2],int(math.floor((self.initSV[-1][1]+8)/4)))) 
-    self.initSV.append([185,2,v3])
-    self.agents.append(laneKeepingAgent(20,20,self.initSV[-1][2],int(math.floor((self.initSV[-1][1]+8)/4)))) 
-    self.initSV.append([220,2,v3])
-    self.agents.append(laneKeepingAgent(20,20,self.initSV[-1][2],int(math.floor((self.initSV[-1][1]+8)/4)))) 
-    self.initSV.append([280,2,v3])
-    self.agents.append(laneKeepingAgent(20,20,self.initSV[-1][2],int(math.floor((self.initSV[-1][1]+8)/4)))) 
-    self.initSV.append([313,2,v3])
-    self.agents.append(laneKeepingAgent(20,20,self.initSV[-1][2],int(math.floor((self.initSV[-1][1]+8)/4)))) 
-    
-
-    self.initSV.append([100,6,v4])
-    self.agents.append(laneKeepingAgent(20,20,self.initSV[-1][2],int(math.floor((self.initSV[-1][1]+8)/4)))) 
-    self.initSV.append([150,6,v4])
-    self.agents.append(laneKeepingAgent(20,20,self.initSV[-1][2],int(math.floor((self.initSV[-1][1]+8)/4)))) 
-    self.initSV.append([200,6,v4])
-    self.agents.append(laneKeepingAgent(20,20,self.initSV[-1][2],int(math.floor((self.initSV[-1][1]+8)/4)))) 
-    self.initSV.append([250,6,v4])
-    self.agents.append(laneKeepingAgent(20,20,self.initSV[-1][2],int(math.floor((self.initSV[-1][1]+8)/4)))) 
-    self.initSV.append([300,6,v4])
-    self.agents.append(laneKeepingAgent(20,20,self.initSV[-1][2],int(math.floor((self.initSV[-1][1]+8)/4)))) 
 
     # initial camera
     base.cam.setPos(0, -20, 4)
@@ -194,17 +142,17 @@ class Game(DirectObject):
     self.accept('u', self.doLaneChangeLeft)
     self.accept('o', self.doLaneChangeRight)
 
-    inputState.watchWithModifiers('forward', 'w')
-    inputState.watchWithModifiers('reverse', 's')
-    inputState.watchWithModifiers('turnLeft', 'a')
-    inputState.watchWithModifiers('turnRight', 'd')
-    inputState.watchWithModifiers('brake1', 'x')
+    # inputState.watchWithModifiers('forward', 'w')
+    # inputState.watchWithModifiers('reverse', 's')
+    # inputState.watchWithModifiers('turnLeft', 'a')
+    # inputState.watchWithModifiers('turnRight', 'd')
+    # inputState.watchWithModifiers('brake1', 'x')
 
-    inputState.watchWithModifiers('For', 'i')
-    inputState.watchWithModifiers('Back', 'k')
-    inputState.watchWithModifiers('Lef', 'j')
-    inputState.watchWithModifiers('Righ', 'l')
-    inputState.watchWithModifiers('brake2', 'space')
+    # inputState.watchWithModifiers('For', 'i')
+    # inputState.watchWithModifiers('Back', 'k')
+    # inputState.watchWithModifiers('Lef', 'j')
+    # inputState.watchWithModifiers('Righ', 'l')
+    # inputState.watchWithModifiers('brake2', 'space')
     
 
     # Task manager
@@ -259,11 +207,9 @@ class Game(DirectObject):
   # simulation update per step
   def update(self, task):
     dt = globalClock.getDt()
-    self.vehicles[0].controlInput(self.vehicles[0].agent.doControl())  # agent control
-    
-    for i in range(len(self.initSV)):
-        self.vehicles[i+1].controlInput(self.vehicles[i+1].agent.doControl()) 
-    
+    # central planner
+    for i in range(len(self.initAV)):
+        self.vehicles[i].controlInput(self.vehicles[i].agent.doControl())     
     
     #self.vehicles[0].processInput(dt,'forward','reverse','turnLeft','turnRight','brake1')  
     #self.vehicles[1].processInput(dt,'For','Back','Lef','Righ','brake2')    # manual control
@@ -313,63 +259,15 @@ class Game(DirectObject):
     self.vehicles=[]
     self.sensors=[]
     
-    self.vehicles.append(basicVehicle(self,[self.initAV[0],self.initAV[1],-0.6],self.initAV[2],length,width,height,axisDis,wheelDis,radius,wheelH)) # [10,0.1,0.5] is vehicle start position
-    self.sensors.append(basicSensor(self))  # initial sensor
-    self.sensors[0].setVehicle(self.vehicles[0])
-    self.vehicles[0].setSensor(self.sensors[0])
-    self.vehicles[0].sensor.align()
-    self.agents[0].setVehicle(self.vehicles[0])
-    self.vehicles[0].setAgent(self.agents[0])
-
-    #Adding laneKeeping vehicles
-    for i in range(len(self.initSV)):
-        self.vehicles.append(surroundingVehicle(self,[self.initSV[i][0],self.initSV[i][1],-0.6],self.initSV[i][2],length,width,height,axisDis,wheelDis,radius,wheelH)) # [10,0.1,0.5] is vehicle start position
+    # Adding autonomous vehicles
+    for i in range(len(self.initAV)):
+        self.vehicles.append(basicVehicle(self,[self.initAV[i][0],self.initAV[i][1],-0.6],self.initAV[i][2],length,width,height,axisDis,wheelDis,radius,wheelH))
         self.sensors.append(basicSensor(self))  # initial sensor
-        self.sensors[i+1].setVehicle(self.vehicles[i+1])
-        self.vehicles[i+1].setSensor(self.sensors[i+1])
-        self.vehicles[i+1].sensor.align()
-        self.agents[i+1].setVehicle(self.vehicles[i+1])
-        self.vehicles[i+1].setAgent(self.agents[i+1])    
-    
-    '''self.vehicles.append(basicVehicle(self,[50,-6,-0.6],30)) # [10,0.1,0.5] is vehicle start position
-    sensor1=basicSensor(self)  # initial sensor
-    sensor1.setVehicle(self.vehicles[1])
-    self.vehicles[1].setSensor(sensor1)
-    self.vehicles[1].sensor.align()
-    #agent1=planningAgent(20,5,40,0,1)   # initial agent
-    agent1=laneKeepingAgent(20,20,30,1)
-    agent1.setVehicle(self.vehicles[1])
-    self.vehicles[1].setAgent(agent1)'''
-    
-    #Surrounding vehicles' speed
-    v1=25
-    v2=25
-    v3=25
-    v4=25
-    
-    '''self.vehicles.append(basicVehicle(self,[60,-6.1,-0.6],v1))
-    self.vehicles.append(basicVehicle(self,[100,-6.1,-0.6],v1))
-    self.vehicles.append(basicVehicle(self,[155,-6.1,-0.6],v1))
-    self.vehicles.append(basicVehicle(self,[215,-6.1,-0.6],v1))
-    self.vehicles.append(basicVehicle(self,[270,-6.1,-0.6],v1))
-    
-    self.vehicles.append(basicVehicle(self,[70,-2,-0.6],v2))
-    self.vehicles.append(basicVehicle(self,[115,-2,-0.6],v2))
-    self.vehicles.append(basicVehicle(self,[165,-2,-0.6],v2))
-    self.vehicles.append(basicVehicle(self,[230,-2,-0.6],v2))
-    self.vehicles.append(basicVehicle(self,[300,-2,-0.6],v2))
-
-    self.vehicles.append(basicVehicle(self,[90,2,-0.6],v3))
-    self.vehicles.append(basicVehicle(self,[140,2,-0.6],v3))
-    self.vehicles.append(basicVehicle(self,[200,2,-0.6],v3))
-    self.vehicles.append(basicVehicle(self,[250,2,-0.6],v3))
-    self.vehicles.append(basicVehicle(self,[320,2,-0.6],v3))
-
-    self.vehicles.append(basicVehicle(self,[65,6.1,-0.6],v4))
-    self.vehicles.append(basicVehicle(self,[130,6.1,-0.6],v4))
-    self.vehicles.append(basicVehicle(self,[220,6.1,-0.6],v4))
-    self.vehicles.append(basicVehicle(self,[275,6.1,-0.6],v4))
-    self.vehicles.append(basicVehicle(self,[350,6.1,-0.6],v4))'''
+        self.sensors[i].setVehicle(self.vehicles[i])
+        self.vehicles[i].setSensor(self.sensors[i])
+        self.vehicles[i].sensor.align()
+        self.agents[i].setVehicle(self.vehicles[i])
+        self.vehicles[i].setAgent(self.agents[i])
     
 
 game = Game()
