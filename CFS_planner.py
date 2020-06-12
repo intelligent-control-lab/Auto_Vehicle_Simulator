@@ -59,7 +59,7 @@ def two_car_distance(path1, path2):
         dist = np.linalg.norm(pts1-pts2)
         # print(dist)
         distance.append(dist)
-    print(np.min(distance))
+    # print(np.min(distance))
     return distance
 
 def get_velocity(path, dt):
@@ -136,15 +136,15 @@ def Plan_trajectory(MAX_ITER, multi_path, mini_distance):
     '''
     Qref, Qabs, nstep, dim, oripath, I_2 = Setup_problem(multi_path)
     refpath = oripath
-    print("refpath shape is:{}".format(refpath.shape))
-    print("Qref shape:{}, Qabs shape:{}".format(Qref.shape, Qabs.shape))
-    print("Dimension is: {}".format(dim))
+    # print("refpath shape is:{}".format(refpath.shape))
+    # print("Qref shape:{}, Qabs shape:{}".format(Qref.shape, Qabs.shape))
+    # print("Dimension is: {}".format(dim))
     Qe = Qref + Qabs
     n = nstep * dim
-    print("n is: {}".format(n))
+    # print("n is: {}".format(n))
 
     for i in range(MAX_ITER):
-        print(i)
+        # print(i)
         x = Variable(n)
         objective = Minimize(0.5*quad_form(x,Qe) + (np.matmul(-Qref,oripath)).T @ x)
         constraints = []
@@ -222,14 +222,14 @@ def Plan_trajectory(MAX_ITER, multi_path, mini_distance):
 
         # constraints.append(-2 <= 0)
         p = Problem(objective, constraints)
-        primal_result = p.solve(solver = CVXOPT)
+        primal_result = p.solve(solver = CVXOPT, abstol = 1e-7, reltol = 1e-6, feastol = 1e-7, verbose = True)
 
         pathnew = x.value
-        print("pathnew is of shape: {}".format(pathnew.shape))
-        print("pathnew is {}".format(pathnew))
+        # print("pathnew is of shape: {}".format(pathnew.shape))
+        # print("pathnew is {}".format(pathnew))
 
         diff = LA.norm(refpath - pathnew)
-        print("diff is: ", diff)
+        # print("diff is: ", diff)
         if diff < 0.001*nstep*dim:
             print("Converged at step {}".format(i))
             break
@@ -244,7 +244,7 @@ def Plan_trajectory(MAX_ITER, multi_path, mini_distance):
         # plt.legend(('1', '2'))
         # plt.show()
 
-    print("Loop finished!")
+    # print("printLoop finished!")
 
     return pathnew
 

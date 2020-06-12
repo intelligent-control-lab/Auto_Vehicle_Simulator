@@ -37,6 +37,7 @@ from vehicle import *
 from road import *
 from sensor import *
 from agent import *
+import CFS_planner
 
 
 from panda3d.core import *
@@ -107,9 +108,10 @@ class Game(DirectObject):
     self.initAV=[]
     self.agents=[]
     self.initAV.append([10,-6,30])
-    self.agents.append(cfsAgent(vGain=20,thetaGain=1000,desiredV=desiredV,laneId=0,ffGain=1000))
+    self.agents.append(mccfsAgent(vGain=20,thetaGain=1000,desiredV=desiredV,laneId=0))
     self.initAV.append([10,-2,30])
-    self.agents.append(cfsAgent(vGain=20,thetaGain=1000,desiredV=desiredV,laneId=1,ffGain=1000))
+    self.agents.append(mccfsAgent(vGain=20,thetaGain=1000,desiredV=desiredV,laneId=1))
+    self.replanFlag = True
     # self.agents.append(planningAgent(20,5,desiredV,int(math.floor((self.initAV[1]+8)/4)),surroundingVehicleNum,self.radiu)) # initial agent
     # self.agents.append(previewAgent(20,5,desiredV,int(math.floor((self.initAV[1]+8)/4)))) # ctl test
     # self.agents.append(autoBrakeAgent(20,5,desiredV)) # ctl test
@@ -204,10 +206,50 @@ class Game(DirectObject):
     base.cam.setPos(position[0]-15*direction[0], position[1]-15*direction[1], 4)
     base.cam.lookAt(position)
 
+  # update path with centralized multi car planner
+  def updatePath(self):
+    # get reference multi path
+    # call CFS_planner.Plan_trajectory
+    # update path for ecery agent
+    num_cars = len(self.initAV)
+    if self.replanFlag is True:
+
+      MAX_ITER = 20
+      min_dist = 1
+      num_steps = 20
+      multi_path = np.zeros((num_cars, num_steps, 2))
+      for i in range(num_cars):
+        # multi_path[i] = np.linspace([-6,9], [-6,28], 20)
+        multi_path[i] = np.asarray(self.agents[i].getPreview(self.agents[i].getCurrLaneId(),num_steps-1))
+      new_path = CFS_planner.Plan_trajectory(MAX_ITER, multi_path, min_dist)
+
+      for i in range(num_cars):
+        car_path = np.zeros((num_steps, 2))
+        car_path[:, 0] = new_path[2*i : : num_cars*2]
+        car_path[:, 1] = new_path[2*i+1 : : num_cars*2]
+        self.agents[i].traj = car_path
+      self.replanFlag = False
+
+    else:
+
+      for i in range(num_cars):
+        # follow last planned trajectory until finished
+        if self.agents[i].traj is not None and len(self.agents[i].traj)>2:
+          pos = self.agents[i].getState()[0]
+          slope = self.agents[i].traj[1] - self.agents[i].traj[0]
+          constant = -slope.dot(self.agents[i].traj[0])
+          if (slope.dot(self.agents[i].traj[1])+constant)*(slope.dot(pos)+constant) > 0:
+              self.agents[i].traj = self.agents[i].traj[1:]
+        else:
+          self.replanFlag = True
+
+      
+
   # simulation update per step
   def update(self, task):
     dt = globalClock.getDt()
     # central planner
+    self.updatePath()
     for i in range(len(self.initAV)):
         self.vehicles[i].controlInput(self.vehicles[i].agent.doControl())     
     

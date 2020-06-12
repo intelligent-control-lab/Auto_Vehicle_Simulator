@@ -761,3 +761,29 @@ class cfsAgent(autoBrakeAgent):
 
     def doControl(self):        
         return self.previewController()
+
+class mccfsAgent(laneKeepingAgent):
+    def __init__(self,vGain=20,thetaGain=20,desiredV=35,laneId=0):
+        super().__init__(vGain,thetaGain,desiredV,laneId)
+        self.traj = None
+
+    def getPreview(self,laneId=0,length=20):
+        return self.vehicle.sensor.getLineInRange(0,length,laneId)
+
+    def getCurrLaneId(self):
+        dev=-self.vehicle.sensor.getCordPos(0)[0]-6
+        if dev<-4:
+            return 0
+        if dev<0:
+            return 1
+        if dev<4:
+            return 2
+        return 3 
+
+    def doControl(self):
+        if self.traj is None : 
+            return [0, 0, 0]
+        else:
+            diffPosV=self.vehicle.sensor.getCordVelocity(self.traj[:2])
+            fb=self.getFeedbackControl(self.getAngle(),self.getDis(self.targetLane),diffPosV)
+            return [fb[0],fb[1],0]
