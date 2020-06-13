@@ -104,12 +104,12 @@ class Game(DirectObject):
     floor1.flattenStrong()'''
 
     # initial automated vehicle
-    desiredV=40
+    desiredV=25
     self.initAV=[]
     self.agents=[]
     self.initAV.append([10,-6,30])
     self.agents.append(mccfsAgent(vGain=20,thetaGain=1000,desiredV=desiredV,laneId=0))
-    self.initAV.append([10,-2,30])
+    self.initAV.append([15,-2,30])
     self.agents.append(mccfsAgent(vGain=20,thetaGain=1000,desiredV=desiredV,laneId=1))
     self.replanFlag = True
     # self.agents.append(planningAgent(20,5,desiredV,int(math.floor((self.initAV[1]+8)/4)),surroundingVehicleNum,self.radiu)) # initial agent
@@ -143,6 +143,7 @@ class Game(DirectObject):
     self.accept('f5', self.doScreenshot)
     self.accept('u', self.doLaneChangeLeft)
     self.accept('o', self.doLaneChangeRight)
+    self.accept('c', self.doLaneChangeDesigned)
 
     # inputState.watchWithModifiers('forward', 'w')
     # inputState.watchWithModifiers('reverse', 's')
@@ -164,6 +165,15 @@ class Game(DirectObject):
     self.setup()
 
   # _____HANDLER_____
+  def doLaneChangeDesigned(self):
+    if self.agents[0].targetLane == 0:
+      self.agents[0].setTargetLane(1)
+      self.agents[1].setTargetLane(0)
+    else:
+      self.agents[0].setTargetLane(0)
+      self.agents[1].setTargetLane(1)
+    self.replanFlag = True
+
   def doLaneChangeLeft(self):
       if self.vehicles[0].agent.targetLane>=1:
           self.vehicles[0].agent.targetLane=self.vehicles[0].agent.targetLane-1
@@ -199,12 +209,20 @@ class Game(DirectObject):
 
   # control camera
   def updateCamera(self):
-    #current state of vehicle
-    direction=self.vehicles[0].getDirection()
+    direction = self.agents[0].getPreview(0, 0)[0]
+    direction = direction / np.linalg.norm(direction)
     position=self.vehicles[0].getPosVector()
     #camera
-    base.cam.setPos(position[0]-15*direction[0], position[1]-15*direction[1], 4)
+    base.cam.setPos(position[0], position[1]-15*direction[1], 4)
     base.cam.lookAt(position)
+    
+    # #current state of vehicle
+    # direction=self.vehicles[0].getDirection()
+    # position=self.vehicles[0].getPosVector()
+    # #camera
+    # base.cam.setPos(position[0]-15*direction[0], position[1]-15*direction[1], 4)
+    # base.cam.lookAt(position)
+    
 
   # update path with centralized multi car planner
   def updatePath(self):
@@ -215,12 +233,17 @@ class Game(DirectObject):
     if self.replanFlag is True:
 
       MAX_ITER = 20
-      min_dist = 1
+      min_dist = 4
       num_steps = 20
       multi_path = np.zeros((num_cars, num_steps, 2))
       for i in range(num_cars):
-        # multi_path[i] = np.linspace([-6,9], [-6,28], 20)
-        multi_path[i] = np.asarray(self.agents[i].getPreview(self.agents[i].getCurrLaneId(),num_steps-1))
+        if self.agents[i].traj is not None:
+          multi_path[i][:2] = self.agents[i].traj[:2]
+          multi_path[i][2:] = self.agents[i].getPreview(self.agents[i].getCurrLaneId(),num_steps)[3:]
+        else:
+          multi_path[i] = self.agents[i].getPreview(self.agents[i].getCurrLaneId(),num_steps)[1:]
+
+        # multi_path[i][0] = self.agents[i].getPos()
       new_path = CFS_planner.Plan_trajectory(MAX_ITER, multi_path, min_dist)
 
       for i in range(num_cars):

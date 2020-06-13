@@ -222,7 +222,7 @@ def Plan_trajectory(MAX_ITER, multi_path, mini_distance):
 
         # constraints.append(-2 <= 0)
         p = Problem(objective, constraints)
-        primal_result = p.solve(solver = CVXOPT, abstol = 1e-7, reltol = 1e-6, feastol = 1e-7, verbose = True)
+        primal_result = p.solve(solver = CVXOPT, abstol = 1e-7, reltol = 1e-6, feastol = 1e-7) # , verbose = True
 
         pathnew = x.value
         # print("pathnew is of shape: {}".format(pathnew.shape))

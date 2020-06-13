@@ -771,14 +771,15 @@ class mccfsAgent(laneKeepingAgent):
         return self.vehicle.sensor.getLineInRange(0,length,laneId)
 
     def getCurrLaneId(self):
-        dev=-self.vehicle.sensor.getCordPos(0)[0]-6
-        if dev<-4:
-            return 0
-        if dev<0:
-            return 1
-        if dev<4:
-            return 2
-        return 3 
+        return self.targetLane
+        # dev=-self.vehicle.sensor.getCordPos(0)[0]-6
+        # if dev<-4:
+        #     return 0
+        # if dev<0:
+        #     return 1
+        # if dev<4:
+        #     return 2
+        # return 3 
 
     def doControl(self):
         if self.traj is None : 
@@ -786,4 +787,15 @@ class mccfsAgent(laneKeepingAgent):
         else:
             diffPosV=self.vehicle.sensor.getCordVelocity(self.traj[:2])
             fb=self.getFeedbackControl(self.getAngle(),self.getDis(self.targetLane),diffPosV)
-            return [fb[0],fb[1],0]
+
+            ff = [0,0]
+            acceleration = ff[0] + fb[0]
+            steerV = ff[1] + fb[1]
+            steeringLimit = 45
+
+            if steerV > steeringLimit:
+                steerV = steeringLimit
+            if steerV < -steeringLimit:
+                steerV = -steeringLimit
+
+            return [acceleration,steerV,0]
