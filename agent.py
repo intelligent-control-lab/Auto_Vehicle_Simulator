@@ -770,23 +770,76 @@ class mccfsAgent(laneKeepingAgent):
     def getPreview(self,laneId=0,length=20):
         return self.vehicle.sensor.getLineInRange(0,length,laneId)
 
+    # get preview of multiple lane segments with desired velocity
+    def getPreview2(self, laneIds, steps):
+        dt = 1/20
+        prevDis = 0
+        laneReference = []
+        for i in range(len(laneIds)):
+            posDis = prevDis + np.ceil(steps[i]*self.desiredV*dt)
+            if len(laneIds)>1:
+                if i==0 or i==len(laneIds)-1:
+                    posDis-=2
+                else:
+                    posDis -=4
+            laneReference.append(self.vehicle.sensor.getLineInRangeForward(prevDis, posDis, laneIds[i]))
+            prevDis = posDis
+        laneReference = np.vstack(laneReference)
+
+        # refine lane reference to path with desired velocity and steps
+        totalSteps = sum(steps)
+        path = np.zeros((totalSteps, 2))
+        path[0] = laneReference[0]
+        i, j = 1, 0
+        prev = laneReference[j]
+        displacement = self.desiredV * dt
+        displacementRemainder = displacement
+        remainder = np.linalg.norm(laneReference[j+1]-laneReference[j])
+        while i < totalSteps:
+            if displacementRemainder > remainder:
+                displacementRemainder -= remainder
+                j += 1
+                remainder = np.linalg.norm(laneReference[j+1]-laneReference[j])
+                prev = laneReference[j]
+            else:
+                intra = prev + (displacementRemainder/remainder)*(laneReference[j+1]-prev)
+                remainder -= displacementRemainder
+                displacementRemainder = displacement
+                prev = intra
+                path[i] = intra
+                i += 1
+        return path
+
     def getCurrLaneId(self):
-        return self.targetLane
-        # dev=-self.vehicle.sensor.getCordPos(0)[0]-6
-        # if dev<-4:
-        #     return 0
-        # if dev<0:
-        #     return 1
-        # if dev<4:
-        #     return 2
-        # return 3 
+        dev=-self.vehicle.sensor.getCordPos(0)[0]-6
+        if dev<-4:
+            return 0
+        if dev<0:
+            return 1
+        if dev<4:
+            return 2
+        return 3 
+
+    # Get distance to the planned trajectory
+    def getDis2Traj(self,lf=1):
+        return np.cross((self.traj[1]-self.traj[0])/np.linalg.norm(self.traj[1]-self.traj[0]),self.getPos()-self.traj[0])
+
+    # Get the angle between the vehicle and the planned trajectory
+    def getAngle(self):
+        return self.vehicle.sensor.getCordAngle2(self.traj[1]-self.traj[0])
+
+    def getFeedbackControl(self,diffAngle,diffPos,diffPosV):
+        acceleration=self.vGain*(self.desiredV*math.cos(diffAngle)-self.getVelocity())
+        steer=-self.thetaGain*diffAngle/(self.getVelocity()+1)-5*self.vehicle.getAngleVelocity()-20*diffPos-20*diffPosV
+        return [acceleration,steer]
 
     def doControl(self):
         if self.traj is None : 
             return [0, 0, 0]
         else:
             diffPosV=self.vehicle.sensor.getCordVelocity(self.traj[:2])
-            fb=self.getFeedbackControl(self.getAngle(),self.getDis(self.targetLane),diffPosV)
+            fb=self.getFeedbackControl(self.getAngle(),self.getDis2Traj(self.targetLane),diffPosV)
+            self.getDis(self.targetLane)    # need this function to update self.cordNum
 
             ff = [0,0]
             acceleration = ff[0] + fb[0]
@@ -797,5 +850,4 @@ class mccfsAgent(laneKeepingAgent):
                 steerV = steeringLimit
             if steerV < -steeringLimit:
                 steerV = -steeringLimit
-
             return [acceleration,steerV,0]

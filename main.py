@@ -103,18 +103,61 @@ class Game(DirectObject):
     floor1.setTexture(floorTex1)
     floor1.flattenStrong()'''
 
+    # central planner settings
+    self.replanFlag = True
+    self.changeFlag = False
+    self.MAX_ITER = 20
+    self.min_dist = 3.9
+    self.num_steps = 20
+    self.scenario = 0
+
     # initial automated vehicle
-    desiredV=25
     self.initAV=[]
     self.agents=[]
-    self.initAV.append([10,-6,30])
-    self.agents.append(mccfsAgent(vGain=20,thetaGain=1000,desiredV=desiredV,laneId=0))
-    self.initAV.append([15,-2,30])
-    self.agents.append(mccfsAgent(vGain=20,thetaGain=1000,desiredV=desiredV,laneId=1))
-    self.replanFlag = True
-    # self.agents.append(planningAgent(20,5,desiredV,int(math.floor((self.initAV[1]+8)/4)),surroundingVehicleNum,self.radiu)) # initial agent
-    # self.agents.append(previewAgent(20,5,desiredV,int(math.floor((self.initAV[1]+8)/4)))) # ctl test
-    # self.agents.append(autoBrakeAgent(20,5,desiredV)) # ctl test
+
+    if self.scenario is 0:
+      # 2 cars take over with different desired velocity scenario -----
+      desiredV=6
+      self.num_steps = 40
+      # car 0 **
+      self.initAV.append([0,-2,desiredV])
+      self.agents.append(mccfsAgent(vGain=50,thetaGain=1000,desiredV=desiredV,laneId=1))
+      # car 1 **
+      self.initAV.append([10,-2,desiredV])
+      self.agents.append(mccfsAgent(vGain=50,thetaGain=50,desiredV=desiredV,laneId=1))
+      # ----- 2 cars take over'''
+    elif self.scenario is 1:
+      # 9 cars scenario -----
+      desiredV=20
+      self.num_steps = 20
+      # car 0 **
+      self.initAV.append([0,-6,10])
+      self.agents.append(mccfsAgent(vGain=20,thetaGain=1000,desiredV=desiredV,laneId=0))
+      # car 1 **
+      self.initAV.append([10,-6,10])
+      self.agents.append(mccfsAgent(vGain=20,thetaGain=1000,desiredV=desiredV,laneId=0))
+      # car 2
+      self.initAV.append([14,-6,10])
+      self.agents.append(mccfsAgent(vGain=20,thetaGain=1000,desiredV=desiredV,laneId=0))
+      # car 3 **
+      self.initAV.append([2,-2,10])
+      self.agents.append(mccfsAgent(vGain=20,thetaGain=1000,desiredV=desiredV,laneId=1))
+      # car 4
+      self.initAV.append([15,-2,10])
+      self.agents.append(mccfsAgent(vGain=20,thetaGain=1000,desiredV=desiredV,laneId=1))
+      # car 5
+      self.initAV.append([25,-2,10])
+      self.agents.append(mccfsAgent(vGain=20,thetaGain=1000,desiredV=desiredV,laneId=1))
+      # car 6
+      self.initAV.append([5,2,10])
+      self.agents.append(mccfsAgent(vGain=20,thetaGain=1000,desiredV=desiredV,laneId=2))
+      # car 7
+      self.initAV.append([10,2,10])
+      self.agents.append(mccfsAgent(vGain=20,thetaGain=1000,desiredV=desiredV,laneId=2))
+      # car 8
+      self.initAV.append([20,2,10])
+      self.agents.append(mccfsAgent(vGain=20,thetaGain=1000,desiredV=desiredV,laneId=2))
+      # ----- 9 cars scenario'''
 
     # initial camera
     base.cam.setPos(0, -20, 4)
@@ -166,13 +209,9 @@ class Game(DirectObject):
 
   # _____HANDLER_____
   def doLaneChangeDesigned(self):
-    if self.agents[0].targetLane == 0:
-      self.agents[0].setTargetLane(1)
-      self.agents[1].setTargetLane(0)
-    else:
-      self.agents[0].setTargetLane(0)
-      self.agents[1].setTargetLane(1)
     self.replanFlag = True
+    self.changeFlag = True
+    print("Do lane change")
 
   def doLaneChangeLeft(self):
       if self.vehicles[0].agent.targetLane>=1:
@@ -209,9 +248,10 @@ class Game(DirectObject):
 
   # control camera
   def updateCamera(self):
-    direction = self.agents[0].getPreview(0, 0)[0]
+    followVehicle = 0
+    direction = self.agents[followVehicle].getPreview(0, 0)[0]
     direction = direction / np.linalg.norm(direction)
-    position=self.vehicles[0].getPosVector()
+    position=self.vehicles[followVehicle].getPosVector()
     #camera
     base.cam.setPos(position[0], position[1]-15*direction[1], 4)
     base.cam.lookAt(position)
@@ -224,49 +264,64 @@ class Game(DirectObject):
     # base.cam.lookAt(position)
     
 
-  # update path with centralized multi car planner
+  # update path with centralized multi car planner:
+  # get reference multi path
+  # call CFS_planner.Plan_trajectory
+  # update path for every agent
   def updatePath(self):
-    # get reference multi path
-    # call CFS_planner.Plan_trajectory
-    # update path for ecery agent
     num_cars = len(self.initAV)
     if self.replanFlag is True:
-
-      MAX_ITER = 20
-      min_dist = 4
-      num_steps = 20
-      multi_path = np.zeros((num_cars, num_steps, 2))
+      multi_path = np.zeros((num_cars, self.num_steps, 2))
       for i in range(num_cars):
         if self.agents[i].traj is not None:
-          multi_path[i][:2] = self.agents[i].traj[:2]
-          multi_path[i][2:] = self.agents[i].getPreview(self.agents[i].getCurrLaneId(),num_steps)[3:]
+          n = self.agents[i].traj.shape[0]
+          multi_path[i][:n] = self.agents[i].traj[:n]
+          multi_path[i][n:] = self.agents[i].getPreview2([self.agents[i].targetLane],[self.num_steps])[n:]
         else:
-          multi_path[i] = self.agents[i].getPreview(self.agents[i].getCurrLaneId(),num_steps)[1:]
+          multi_path[i] = self.agents[i].getPreview2([self.agents[i].targetLane],[self.num_steps])
 
-        # multi_path[i][0] = self.agents[i].getPos()
-      new_path = CFS_planner.Plan_trajectory(MAX_ITER, multi_path, min_dist)
+      if self.changeFlag is True:
+        if self.scenario is 0:
+          # 2 cars take over with different desired velocity scenario -----
+          self.agents[0].desiredV = 25
+          multi_path[0][2:] = self.agents[0].getPreview2([1,0,1], [10, 20, self.num_steps-10-20])[2:]
+          self.changeFlag = False
+          # ----- 2 cars take over'''
+        elif self.scenario is 1:
+          # 9 cars scenario -----
+          multi_path[0][2:] = self.agents[0].getPreview2([0,1], [10,self.num_steps-10])[2:]
+          self.agents[0].setTargetLane(1)
+          multi_path[1][2:] = self.agents[1].getPreview2([0,1], [5,self.num_steps-5])[2:]
+          self.agents[1].setTargetLane(1)
+          multi_path[3][2:] = self.agents[3].getPreview2([1,2], [5,self.num_steps-5])[2:]
+          self.agents[3].setTargetLane(2)
+          # ----- 9 cars scenario'''
+
+      new_path = CFS_planner.Plan_trajectory(self.MAX_ITER, multi_path, self.min_dist)
 
       for i in range(num_cars):
-        car_path = np.zeros((num_steps, 2))
+        car_path = np.zeros((self.num_steps, 2))
         car_path[:, 0] = new_path[2*i : : num_cars*2]
         car_path[:, 1] = new_path[2*i+1 : : num_cars*2]
         self.agents[i].traj = car_path
       self.replanFlag = False
 
     else:
-
+      forwardFlag = False
       for i in range(num_cars):
-        # follow last planned trajectory until finished
         if self.agents[i].traj is not None and len(self.agents[i].traj)>2:
           pos = self.agents[i].getState()[0]
           slope = self.agents[i].traj[1] - self.agents[i].traj[0]
           constant = -slope.dot(self.agents[i].traj[0])
           if (slope.dot(self.agents[i].traj[1])+constant)*(slope.dot(pos)+constant) > 0:
-              self.agents[i].traj = self.agents[i].traj[1:]
+              forwardFlag = True
+              break
         else:
           self.replanFlag = True
-
-      
+          break
+      if forwardFlag is True:
+        for i in range(num_cars):
+          self.agents[i].traj = self.agents[i].traj[1:]
 
   # simulation update per step
   def update(self, task):
