@@ -124,7 +124,7 @@ class Game(DirectObject):
       self.agents.append(mccfsAgent(vGain=50,thetaGain=1000,desiredV=desiredV,laneId=1))
       # car 1 **
       self.initAV.append([10,-2,desiredV])
-      self.agents.append(mccfsAgent(vGain=50,thetaGain=50,desiredV=desiredV,laneId=1))
+      self.agents.append(mccfsAgent(vGain=50,thetaGain=1000,desiredV=desiredV,laneId=1))
       # ----- 2 cars take over'''
     elif self.scenario is 1:
       # 9 cars scenario -----
@@ -285,7 +285,6 @@ class Game(DirectObject):
           # 2 cars take over with different desired velocity scenario -----
           self.agents[0].desiredV = 25
           multi_path[0][2:] = self.agents[0].getPreview2([1,0,1], [10, 20, self.num_steps-10-20])[2:]
-          self.changeFlag = False
           # ----- 2 cars take over'''
         elif self.scenario is 1:
           # 9 cars scenario -----
@@ -296,6 +295,7 @@ class Game(DirectObject):
           multi_path[3][2:] = self.agents[3].getPreview2([1,2], [5,self.num_steps-5])[2:]
           self.agents[3].setTargetLane(2)
           # ----- 9 cars scenario'''
+        self.changeFlag = False
 
       new_path = CFS_planner.Plan_trajectory(self.MAX_ITER, multi_path, self.min_dist)
 
