@@ -104,12 +104,30 @@ class Game(DirectObject):
     floor1.flattenStrong()'''
 
     # central planner settings
+    self.scenario = 0                   # specify a scenario
+    self.replayFile = "traj_log_2.npz"  # specify a filename to replay
+
     self.replanFlag = True
     self.changeFlag = False
     self.MAX_ITER = 20
     self.min_dist = 3.9
     self.num_steps = 20
-    self.scenario = 0
+    self.replayTrajectories = None
+    self.replayIndex = 0
+    self.changeIdx = []
+    if self.replayFile is not None:
+      loadData = np.load(self.replayFile)
+      self.replayTrajectories = loadData["log"]
+      self.changeIdx = loadData["c"]
+      if self.replayTrajectories is not None:
+        print("File loaded")
+      else:
+        print("Fail to load file")
+    if self.replayFile is "traj_log_2.npz":
+      self.scenario = 0
+    elif self.replayFile is "traj_log_9.npz":
+      self.scenario = 1
+    self.traj_log = []
 
     # initial automated vehicle
     self.initAV=[]
@@ -158,6 +176,11 @@ class Game(DirectObject):
       self.initAV.append([20,2,10])
       self.agents.append(mccfsAgent(vGain=20,thetaGain=1000,desiredV=desiredV,laneId=2))
       # ----- 9 cars scenario'''
+
+    # initialize traj in replay mode
+    if self.replayFile is not None:
+      for i in range(len(self.initAV)):
+          self.agents[i].traj = self.replayTrajectories[i,self.replayIndex:self.replayIndex+2,:]
 
     # initial camera
     base.cam.setPos(0, -20, 4)
@@ -209,8 +232,13 @@ class Game(DirectObject):
 
   # _____HANDLER_____
   def doLaneChangeDesigned(self):
-    self.replanFlag = True
-    self.changeFlag = True
+    if self.replayFile is None:
+      self.replanFlag = True
+      self.changeFlag = True
+      self.updateLog()
+    else:
+      if self.scenario is 0:
+          self.agents[0].desiredV = 25
     print("Do lane change")
 
   def doLaneChangeLeft(self):
@@ -272,6 +300,7 @@ class Game(DirectObject):
     num_cars = len(self.initAV)
     if self.replanFlag is True:
       multi_path = np.zeros((num_cars, self.num_steps, 2))
+      multi_path_log = np.zeros((num_cars, self.num_steps, 2))
       for i in range(num_cars):
         if self.agents[i].traj is not None:
           n = self.agents[i].traj.shape[0]
@@ -304,6 +333,8 @@ class Game(DirectObject):
         car_path[:, 0] = new_path[2*i : : num_cars*2]
         car_path[:, 1] = new_path[2*i+1 : : num_cars*2]
         self.agents[i].traj = car_path
+        multi_path_log[i] = car_path
+      self.traj_log.append(multi_path_log[:,2:,:])
       self.replanFlag = False
 
     else:
@@ -321,13 +352,45 @@ class Game(DirectObject):
           break
       if forwardFlag is True:
         for i in range(num_cars):
-          self.agents[i].traj = self.agents[i].traj[1:]
+          self.agents[i].traj = self.agents[i].traj[1:]    
 
+  def updateReplayPath(self):
+    if self.replayIndex < self.replayTrajectories.shape[1]-1:
+      forwardFlag = False
+      for i in range(len(self.initAV)):
+        pos = self.agents[i].getState()[0]
+        slope = self.agents[i].traj[1] - self.agents[i].traj[0]
+        constant = -slope.dot(self.agents[i].traj[0])
+        if (slope.dot(self.agents[i].traj[1])+constant)*(slope.dot(pos)+constant) > 0:
+            forwardFlag = True
+            break
+      if forwardFlag is True:
+        for i in range(len(self.initAV)):
+          self.agents[i].traj = self.replayTrajectories[i,self.replayIndex:self.replayIndex+2,:]
+        self.replayIndex+=1
+        if self.replayIndex == self.changeIdx:
+          self.doLaneChangeDesigned()
+    else:
+      self.doExit()
+
+  def updateLog(self):
+    multi_path_log = self.traj_log.pop()
+    remaining = self.agents[0].traj.shape[0]
+    multi_path_log = multi_path_log[:,:-remaining,:]
+    self.traj_log.append(multi_path_log)
+    idx = 0
+    for i in range(len(self.traj_log)):
+      idx+=self.traj_log[i].shape[1]
+    self.changeIdx.append(idx)
+  
   # simulation update per step
   def update(self, task):
     dt = globalClock.getDt()
-    # central planner
-    self.updatePath()
+    if self.replayFile is not None:
+      self.updateReplayPath()
+    else:
+      # central planner
+      self.updatePath()
     for i in range(len(self.initAV)):
         self.vehicles[i].controlInput(self.vehicles[i].agent.doControl())     
     
@@ -344,6 +407,9 @@ class Game(DirectObject):
   def cleanup(self):
     self.world = None
     self.worldNP.removeNode()
+    if len(self.traj_log)>0:
+      log = np.concatenate(self.traj_log, axis=1)
+      np.savez("traj_log", c=self.changeIdx, log=log)
 
   # physical world setup
   def setup(self):
