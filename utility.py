@@ -25,7 +25,7 @@ def perpLength(v1,v2):
     return np.cross(v2,v1)/np.linalg.norm(v2)
 
 def normalize(v):
-    norm = np.linalg(np.array(v))
+    norm = np.linalg.norm(np.array(v))
     for i in range(len(v)):
         v[i] = v[i]/norm
     return v
@@ -47,7 +47,7 @@ def embed(Qaug, Q, ni, nj):
 
 def matrixPower(A,n):
     if n == 0:
-        return np.identity(round(math.sqrt(len(A))))
+        return np.identity(len(A))
     else:
         newA = A
         for i in range(n-1):
