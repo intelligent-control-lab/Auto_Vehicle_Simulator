@@ -243,13 +243,10 @@ trapezoid_orientation = [], xrec = []):
     x_rs = x_rs[: h * dimension]
     return x_rs.reshape(h, dimension)
 
-def convex_hull_2d_2_feasible_set(x_r, obstacles = [], t = 0, obs_velocity = [0, 0], theta = 0, trapezoid_orientation = []):
+def convex_hull_2d_2_feasible_set(x_r, obstacles = [], t = 0, theta = 0, trapezoid_orientation = []):
     n_ob = len(obstacles)
     line_set = []
     for i in range(n_ob):
-
-        dx = obs_velocity[0] * t
-        dy = obs_velocity[1] * t
 
         # vehicle angle
         vh_l = 2.8 + 1.0

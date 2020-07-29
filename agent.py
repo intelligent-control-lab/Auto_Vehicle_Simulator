@@ -16,8 +16,9 @@ import optimization as opt
 import copy
 solvers.options['feastol'] = 1e-10
 
-from direct.showbase.ShowBase import ShowBase
+# from direct.showbase.ShowBase import ShowBase
 from panda3d.core import *
+import time
 
 # this is a basic agent structure that generate zero input
 class basicAgent:
@@ -626,13 +627,16 @@ class planningAgent(autoBrakeAgent):
         return self.safetyController()
 
 class cfsAgent(autoBrakeAgent):
+    _set_timer = False
+    _draw_traj = False
     def __init__(self,vGain=50,thetaGain=20,desiredV=25,laneId=0,ffGain=1000,headway=20, numSurr=0):
         super().__init__(vGain,thetaGain,desiredV,laneId,ffGain,headway)
         self.numSurrounding = numSurr
         # for drawing trajectory
-        lines = LineSegs()
-        trajNode = lines.create()
-        self.trajNp = NodePath(trajNode)
+        if self._draw_traj:
+            lines = LineSegs()
+            trajNode = lines.create()
+            self.trajNp = NodePath(trajNode)
         self.traj = None
         self.xrec = None
 
@@ -681,8 +685,11 @@ class cfsAgent(autoBrakeAgent):
         return [acceleration,steerV,0]
 
     def CFSTrajectory(self):
-        self.trajNp.removeNode()    # panda3d draw
-        lines = LineSegs()    # panda3d draw
+        if self._set_timer:
+            start_time = time.perf_counter()
+        if self._draw_traj:
+            self.trajNp.removeNode()    # panda3d draw
+            lines = LineSegs()    # panda3d draw
 
         # Draw reference trajectory
         ego_state = self.getState()
@@ -691,7 +698,7 @@ class cfsAgent(autoBrakeAgent):
             self.xrec = pos
         else:
             self.xrec = self.traj[0]
-        dist = 25
+        dist = 18
         preTraj = self.getPreview(0,dist)
         preTraj = preTraj[1:]
         
@@ -713,40 +720,134 @@ class cfsAgent(autoBrakeAgent):
 
                 # Draw Obstacles
                 '''
-                vh_l = 2.8 + 1.0    # in convex_hull_2d
-                vh_w = 1.2 + 0.6
-                a = vh_l / 2
-                b = vh_w / 2
-                d = np.tan(1.0) * vh_w
-                if trapezoid_orientation[-1] == 0:
-                    v0 = [X[0] + a*V[0] + b*V[1], X[1] + a*V[1] - b*V[0]]
-                    v1 = [X[0] - a*V[0] + b*V[1], X[1] - a*V[1] - b*V[0]]
-                    v2 = [X[0] - a*V[0] - 3*vh_w*V[1], X[1] - a*V[1] + 3*vh_w*V[0]]
-                    v3 = [X[0] + a*V[0] - 3*vh_w*V[1], X[1] + a*V[1] + 3*vh_w*V[0]]
-                    v2 = [v2[0] - 3*vh_w*d*V[0], v2[1] - 3*vh_w*d*V[1]]   # at lane 0
-                    v3 = [v3[0] + 3*vh_w*d*V[0], v3[1] + 3*vh_w*d*V[1]]
-                else:
-                    v0 = [X[0] + a*V[0] + 3*vh_w*V[1], X[1] + a*V[1] - 3*vh_w*V[0]]
-                    v1 = [X[0] - a*V[0] + 3*vh_w*V[1], X[1] - a*V[1] - 3*vh_w*V[0]]
-                    v2 = [X[0] - a*V[0] - b*V[1], X[1] - a*V[1] + b*V[0]]
-                    v3 = [X[0] + a*V[0] - b*V[1], X[1] + a*V[1] + b*V[0]]
-                    v0 = [v0[0] + 3*vh_w*d*V[0], v0[1] + 3*vh_w*d*V[1]]   # at lane 1
-                    v1 = [v1[0] - 3*vh_w*d*V[0], v1[1] - 3*vh_w*d*V[1]]
-                bar = [v0, v1, v2, v3, v0]
-                self.drawTrajectory(bar, lines, -0.8)'''
+                if self._draw_traj:
+                    vh_l = 2.8 + 1.0    # in convex_hull_2d
+                    vh_w = 1.2 + 0.6
+                    a = vh_l / 2
+                    b = vh_w / 2
+                    d = np.tan(1.0) * vh_w
+                    if trapezoid_orientation[-1] == 0:
+                        v0 = [X[0] + a*V[0] + b*V[1], X[1] + a*V[1] - b*V[0]]
+                        v1 = [X[0] - a*V[0] + b*V[1], X[1] - a*V[1] - b*V[0]]
+                        v2 = [X[0] - a*V[0] - 3*vh_w*V[1], X[1] - a*V[1] + 3*vh_w*V[0]]
+                        v3 = [X[0] + a*V[0] - 3*vh_w*V[1], X[1] + a*V[1] + 3*vh_w*V[0]]
+                        v2 = [v2[0] - 3*vh_w*d*V[0], v2[1] - 3*vh_w*d*V[1]]   # at lane 0
+                        v3 = [v3[0] + 3*vh_w*d*V[0], v3[1] + 3*vh_w*d*V[1]]
+                    else:
+                        v0 = [X[0] + a*V[0] + 3*vh_w*V[1], X[1] + a*V[1] - 3*vh_w*V[0]]
+                        v1 = [X[0] - a*V[0] + 3*vh_w*V[1], X[1] - a*V[1] - 3*vh_w*V[0]]
+                        v2 = [X[0] - a*V[0] - b*V[1], X[1] - a*V[1] + b*V[0]]
+                        v3 = [X[0] + a*V[0] - b*V[1], X[1] + a*V[1] + b*V[0]]
+                        v0 = [v0[0] + 3*vh_w*d*V[0], v0[1] + 3*vh_w*d*V[1]]   # at lane 1
+                        v1 = [v1[0] - 3*vh_w*d*V[0], v1[1] - 3*vh_w*d*V[1]]
+                    bar = [v0, v1, v2, v3, v0]
+                    self.drawTrajectory(bar, lines, -0.8)
+                '''
 
         newTraj = opt.CFS(pos, preTraj, obstacles, cq = [0.05,0,0], cs = [0.05,0.05,7], theta = 1.2,
         minimal_dis = 2.4, maxIter = 10, SCCFS = True, slack_w = 1.3, stop_eps = 0.1,
          trapezoid_orientation = trapezoid_orientation, xrec = self.xrec)
         
         # Draw CFS output trajectory
-        # self.drawTrajectory(preTraj, lines, -0.8)
-        self.drawTrajectory(newTraj, lines, -0.8)
-        trajNode = lines.create()    # panda3d draw
-        self.trajNp = NodePath(trajNode)    # panda3d draw
-        self.trajNp.reparentTo(render)    # panda3d draw
-
+        if self._draw_traj:
+            # self.drawTrajectory(preTraj, lines, -0.8)
+            self.drawTrajectory(newTraj, lines, -0.8)
+            trajNode = lines.create()    # panda3d draw
+            self.trajNp = NodePath(trajNode)    # panda3d draw
+            self.trajNp.reparentTo(render)    # panda3d draw
+        if self._set_timer:
+            print("plan time : ", time.perf_counter()-start_time)
         return newTraj
 
     def doControl(self):        
         return self.previewController()
+
+class mccfsAgent(laneKeepingAgent):
+    def __init__(self,vGain=20,thetaGain=20,desiredV=35,laneId=0):
+        super().__init__(vGain,thetaGain,desiredV,laneId)
+        self.traj = None
+
+    def getPreview(self,laneId=0,length=20):
+        return self.vehicle.sensor.getLineInRange(0,length,laneId)
+
+    # get preview of multiple lane segments with desired velocity
+    def getPreview2(self, laneIds, steps):
+        dt = 1/20
+        prevDis = 0
+        laneReference = []
+        for i in range(len(laneIds)):
+            posDis = prevDis + np.ceil(steps[i]*self.desiredV*dt)
+            if len(laneIds)>1:
+                if i==0 or i==len(laneIds)-1:
+                    posDis-=2
+                else:
+                    posDis -=4
+            laneReference.append(self.vehicle.sensor.getLineInRangeForward(prevDis, posDis, laneIds[i]))
+            prevDis = posDis
+        laneReference = np.vstack(laneReference)
+
+        # refine lane reference to path with desired velocity and steps
+        totalSteps = sum(steps)
+        path = np.zeros((totalSteps, 2))
+        path[0] = laneReference[0]
+        i, j = 1, 0
+        prev = laneReference[j]
+        displacement = self.desiredV * dt
+        displacementRemainder = displacement
+        remainder = np.linalg.norm(laneReference[j+1]-laneReference[j])
+        while i < totalSteps:
+            if displacementRemainder > remainder:
+                displacementRemainder -= remainder
+                j += 1
+                remainder = np.linalg.norm(laneReference[j+1]-laneReference[j])
+                prev = laneReference[j]
+            else:
+                intra = prev + (displacementRemainder/remainder)*(laneReference[j+1]-prev)
+                remainder -= displacementRemainder
+                displacementRemainder = displacement
+                prev = intra
+                path[i] = intra
+                i += 1
+        return path
+
+    def getCurrLaneId(self):
+        dev=-self.vehicle.sensor.getCordPos(0)[0]-6
+        if dev<-4:
+            return 0
+        if dev<0:
+            return 1
+        if dev<4:
+            return 2
+        return 3 
+
+    # Get distance to the planned trajectory
+    def getDis2Traj(self,lf=1):
+        return np.cross((self.traj[1]-self.traj[0])/np.linalg.norm(self.traj[1]-self.traj[0]),self.getPos()-self.traj[0])
+
+    # Get the angle between the vehicle and the planned trajectory
+    def getAngle(self):
+        return self.vehicle.sensor.getCordAngle2(self.traj[1]-self.traj[0])
+
+    def getFeedbackControl(self,diffAngle,diffPos,diffPosV):
+        acceleration=self.vGain*(self.desiredV*math.cos(diffAngle)-self.getVelocity())
+        steer=-self.thetaGain*diffAngle/(self.getVelocity()+1)-5*self.vehicle.getAngleVelocity()-20*diffPos-20*diffPosV
+        return [acceleration,steer]
+
+    def doControl(self):
+        if self.traj is None : 
+            return [0, 0, 0]
+        else:
+            diffPosV=self.vehicle.sensor.getCordVelocity(self.traj[:2])
+            fb=self.getFeedbackControl(self.getAngle(),self.getDis2Traj(self.targetLane),diffPosV)
+            self.getDis(self.targetLane)    # need this function to update self.cordNum
+
+            ff = [0,0]
+            acceleration = ff[0] + fb[0]
+            steerV = ff[1] + fb[1]
+            steeringLimit = 45
+
+            if steerV > steeringLimit:
+                steerV = steeringLimit
+            if steerV < -steeringLimit:
+                steerV = -steeringLimit
+            return [acceleration,steerV,0]

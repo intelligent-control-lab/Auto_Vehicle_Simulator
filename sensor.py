@@ -89,6 +89,19 @@ class basicSensor:
         if np.cross(lineAngle,selfAngle)<=0:
             angle=-angle
         return angle
+    
+    # get angle in trajectory coordination
+    def getCordAngle2(self, lineAngle):
+        selfAngle=self.getSelfAngle()
+        val = np.dot(lineAngle,selfAngle)/(np.linalg.norm(lineAngle)*np.linalg.norm(selfAngle))
+        if val>1 :
+            val = 1
+        elif val<-1 :
+            val = -1
+        angle=math.acos(val)
+        if np.cross(lineAngle,selfAngle)<=0:
+            angle=-angle
+        return angle
 
     # get position in road cordination [distanceFromCenterline(left positive), distanceFromStart]
     def getCordPos(self,laneId):
@@ -128,6 +141,12 @@ class basicSensor:
     # get a piece of centerline points
     def getLineInRange(self,prevDis,posDis,laneId):
         prevNum=self.cordNum-math.ceil(prevDis/self.game.precision)
+        posNum=self.cordNum+math.ceil(posDis/self.game.precision)
+        return self.lines[laneId][int(prevNum):int(posNum)+1]
+
+    # get a piece of centerline points from current coordinate plus prevDis to current coordinate plus posDis
+    def getLineInRangeForward(self,prevDis,posDis,laneId):
+        prevNum=self.cordNum+math.ceil(prevDis/self.game.precision)
         posNum=self.cordNum+math.ceil(posDis/self.game.precision)
         return self.lines[laneId][int(prevNum):int(posNum)+1]
 
