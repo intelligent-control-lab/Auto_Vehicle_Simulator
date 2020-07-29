@@ -37,7 +37,8 @@ from vehicle import *
 from road import *
 from sensor import *
 from agent import *
-
+import CFS_planner
+import matplotlib.pyplot as plt
 
 from panda3d.core import *
 import sys
@@ -60,11 +61,11 @@ class Game(DirectObject):
 
     # road geometry generation
     #road=trail(100,50,40,0.2) # generating a circular lane track
-    self.precision=1 # length of a piece of centerLine
+    self.precision=0.2 # length of a piece of centerLine
     self.texLength=10
     self.laneNum=4
     self.radiu=500
-    road=basicFreeWay(200,self.radiu,3,self.precision,2) # generating a piece of freeway
+    road=basicFreeWay(200,self.radiu,1,self.precision,2) # generating a piece of freeway
     #road=straightCenter(np.array([0,0]),math.pi/2,2000,2)  # generating a straight way
     self.segLine=road.getLine() # the centerLine
     self.road=roadGenerator(np.array([0,-1]),8,2,road.getFollowing(),self.segLine,-1,self.texLength,self.precision) # generate road polygon
@@ -102,69 +103,82 @@ class Game(DirectObject):
     floor1.setTexture(floorTex1)
     floor1.flattenStrong()'''
 
+    # central planner settings
+    self.scenario = 0                   # specify a scenario
+    self.replayFile = "traj_log_2.npz"  # specify a filename to replay
+
+    self.replanFlag = True
+    self.changeFlag = False
+    self.MAX_ITER = 20
+    self.min_dist = 3.9
+    self.num_steps = 20
+    self.replayTrajectories = None
+    self.replayIndex = 0
+    self.changeIdx = []
+
+    if self.replayFile is "traj_log_2.npz":
+      self.scenario = 0
+    elif self.replayFile is "traj_log_9.npz":
+      self.scenario = 1
+    self.traj_log = []
+
+
+    
     # initial automated vehicle
-    self.initAV=[10,-6,30]
-    desiredV=40
-    surroundingVehicleNum=20
+    self.scenario = 0
+    
+    self.initAV=[]
     self.agents=[]
-    self.agents.append(cfsAgent(vGain=20,thetaGain=1000,desiredV=desiredV,laneId=0,ffGain=1000,numSurr=surroundingVehicleNum))
-    # self.agents.append(planningAgent(20,5,desiredV,int(math.floor((self.initAV[1]+8)/4)),surroundingVehicleNum,self.radiu)) # initial agent
-    # self.agents.append(previewAgent(20,5,desiredV,int(math.floor((self.initAV[1]+8)/4)))) # ctl test
-    # self.agents.append(autoBrakeAgent(20,5,desiredV)) # ctl test
 
-    # initial surrounding vehicle
-    v1=25
-    v2=25
-    v3=25
-    v4=25
-    self.initSV=[]
-    self.initSV.append([50,-6,v1])
-    #self.agents.append(planningAgent(20,5,desiredV,int(math.floor((self.initSV[-1][1]+8)/4)),surroundingVehicleNum,self.radiu)) # initial agent
-    self.agents.append(laneKeepingAgent(20,20,self.initSV[-1][2],int(math.floor((self.initSV[-1][1]+8)/4)))) 
-    self.initSV.append([90,-6,v1])
-    self.agents.append(laneKeepingAgent(20,20,self.initSV[-1][2],int(math.floor((self.initSV[-1][1]+8)/4)))) 
-    self.initSV.append([130,-6,v1])
-    self.agents.append(laneKeepingAgent(20,20,self.initSV[-1][2],int(math.floor((self.initSV[-1][1]+8)/4)))) 
-    self.initSV.append([185,-6,v1])
-    self.agents.append(laneKeepingAgent(20,20,self.initSV[-1][2],int(math.floor((self.initSV[-1][1]+8)/4)))) 
-    self.initSV.append([235,-6,v1])
-    self.agents.append(laneKeepingAgent(20,20,self.initSV[-1][2],int(math.floor((self.initSV[-1][1]+8)/4)))) 
+    if self.scenario is 0:
+      # 2 cars take over with different desired velocity scenario -----
+      desiredV=10
+      
+      # car 0 **
+      self.initAV.append([0,-2,desiredV])
+      self.agents.append(dcfsAgent(vGain=2,thetaGain=100,desiredV=desiredV,laneId=1))
+      # car 1 **
+      self.initAV.append([20,-2,desiredV])
+      self.agents.append(dcfsAgent(vGain=2,thetaGain=100,desiredV=desiredV,laneId=1))
+      
+      # ----- 2 cars take over'''
+    elif self.scenario is 1:
+      # 9 cars scenario -----
+      desiredV=20
+      self.num_steps = 20
+      # car 0 **
+      self.initAV.append([0,-6,10])
+      self.agents.append(mccfsAgent(vGain=20,thetaGain=1000,desiredV=desiredV,laneId=0))
+      # car 1 **
+      self.initAV.append([10,-6,10])
+      self.agents.append(mccfsAgent(vGain=20,thetaGain=1000,desiredV=desiredV,laneId=0))
+      # car 2
+      self.initAV.append([14,-6,10])
+      self.agents.append(mccfsAgent(vGain=20,thetaGain=1000,desiredV=desiredV,laneId=0))
+      # car 3 **
+      self.initAV.append([2,-2,10])
+      self.agents.append(mccfsAgent(vGain=20,thetaGain=1000,desiredV=desiredV,laneId=1))
+      # car 4
+      self.initAV.append([15,-2,10])
+      self.agents.append(mccfsAgent(vGain=20,thetaGain=1000,desiredV=desiredV,laneId=1))
+      # car 5
+      self.initAV.append([25,-2,10])
+      self.agents.append(mccfsAgent(vGain=20,thetaGain=1000,desiredV=desiredV,laneId=1))
+      # car 6
+      self.initAV.append([5,2,10])
+      self.agents.append(mccfsAgent(vGain=20,thetaGain=1000,desiredV=desiredV,laneId=2))
+      # car 7
+      self.initAV.append([10,2,10])
+      self.agents.append(mccfsAgent(vGain=20,thetaGain=1000,desiredV=desiredV,laneId=2))
+      # car 8
+      self.initAV.append([20,2,10])
+      self.agents.append(mccfsAgent(vGain=20,thetaGain=1000,desiredV=desiredV,laneId=2))
+      # ----- 9 cars scenario'''
     
-    
-    self.initSV.append([70,-2,v2])
-    self.agents.append(laneKeepingAgent(20,20,self.initSV[-1][2],int(math.floor((self.initSV[-1][1]+8)/4)))) 
-    self.initSV.append([100,-2,v2])
-    self.agents.append(laneKeepingAgent(20,20,self.initSV[-1][2],int(math.floor((self.initSV[-1][1]+8)/4)))) 
-    self.initSV.append([160,-2,v2])
-    self.agents.append(laneKeepingAgent(20,20,self.initSV[-1][2],int(math.floor((self.initSV[-1][1]+8)/4)))) 
-    self.initSV.append([210,-2,v2])
-    self.agents.append(laneKeepingAgent(20,20,self.initSV[-1][2],int(math.floor((self.initSV[-1][1]+8)/4)))) 
-    self.initSV.append([260,-2,v2])
-    self.agents.append(laneKeepingAgent(20,20,self.initSV[-1][2],int(math.floor((self.initSV[-1][1]+8)/4)))) 
-    
-    
-    self.initSV.append([135,2,v3])
-    self.agents.append(laneKeepingAgent(20,20,self.initSV[-1][2],int(math.floor((self.initSV[-1][1]+8)/4)))) 
-    self.initSV.append([185,2,v3])
-    self.agents.append(laneKeepingAgent(20,20,self.initSV[-1][2],int(math.floor((self.initSV[-1][1]+8)/4)))) 
-    self.initSV.append([220,2,v3])
-    self.agents.append(laneKeepingAgent(20,20,self.initSV[-1][2],int(math.floor((self.initSV[-1][1]+8)/4)))) 
-    self.initSV.append([280,2,v3])
-    self.agents.append(laneKeepingAgent(20,20,self.initSV[-1][2],int(math.floor((self.initSV[-1][1]+8)/4)))) 
-    self.initSV.append([313,2,v3])
-    self.agents.append(laneKeepingAgent(20,20,self.initSV[-1][2],int(math.floor((self.initSV[-1][1]+8)/4)))) 
-    
-
-    self.initSV.append([100,6,v4])
-    self.agents.append(laneKeepingAgent(20,20,self.initSV[-1][2],int(math.floor((self.initSV[-1][1]+8)/4)))) 
-    self.initSV.append([150,6,v4])
-    self.agents.append(laneKeepingAgent(20,20,self.initSV[-1][2],int(math.floor((self.initSV[-1][1]+8)/4)))) 
-    self.initSV.append([200,6,v4])
-    self.agents.append(laneKeepingAgent(20,20,self.initSV[-1][2],int(math.floor((self.initSV[-1][1]+8)/4)))) 
-    self.initSV.append([250,6,v4])
-    self.agents.append(laneKeepingAgent(20,20,self.initSV[-1][2],int(math.floor((self.initSV[-1][1]+8)/4)))) 
-    self.initSV.append([300,6,v4])
-    self.agents.append(laneKeepingAgent(20,20,self.initSV[-1][2],int(math.floor((self.initSV[-1][1]+8)/4)))) 
+    self.dim = 2
+    self.num_veh = len(self.initAV)
+    self.horizon = self.agents[0].horizon
+    self.shared_path = np.zeros((self.num_veh, self.horizon, self.dim))
 
     # initial camera
     base.cam.setPos(0, -20, 4)
@@ -193,18 +207,19 @@ class Game(DirectObject):
     self.accept('f5', self.doScreenshot)
     self.accept('u', self.doLaneChangeLeft)
     self.accept('o', self.doLaneChangeRight)
+    self.accept('c', self.doLaneChangeDesigned)
 
-    inputState.watchWithModifiers('forward', 'w')
-    inputState.watchWithModifiers('reverse', 's')
-    inputState.watchWithModifiers('turnLeft', 'a')
-    inputState.watchWithModifiers('turnRight', 'd')
-    inputState.watchWithModifiers('brake1', 'x')
+    # inputState.watchWithModifiers('forward', 'w')
+    # inputState.watchWithModifiers('reverse', 's')
+    # inputState.watchWithModifiers('turnLeft', 'a')
+    # inputState.watchWithModifiers('turnRight', 'd')
+    # inputState.watchWithModifiers('brake1', 'x')
 
-    inputState.watchWithModifiers('For', 'i')
-    inputState.watchWithModifiers('Back', 'k')
-    inputState.watchWithModifiers('Lef', 'j')
-    inputState.watchWithModifiers('Righ', 'l')
-    inputState.watchWithModifiers('brake2', 'space')
+    # inputState.watchWithModifiers('For', 'i')
+    # inputState.watchWithModifiers('Back', 'k')
+    # inputState.watchWithModifiers('Lef', 'j')
+    # inputState.watchWithModifiers('Righ', 'l')
+    # inputState.watchWithModifiers('brake2', 'space')
     
 
     # Task manager
@@ -214,6 +229,16 @@ class Game(DirectObject):
     self.setup()
 
   # _____HANDLER_____
+  def doLaneChangeDesigned(self):
+#    if self.replayFile is None:
+#      self.replanFlag = True
+#      self.changeFlag = True
+#      self.updateLog()
+#    else:
+      if self.scenario is 0:
+          self.agents[0].desiredV = 3*self.agents[0].desiredV
+#      print("Do lane change")
+
   def doLaneChangeLeft(self):
       if self.vehicles[0].agent.targetLane>=1:
           self.vehicles[0].agent.targetLane=self.vehicles[0].agent.targetLane-1
@@ -249,25 +274,140 @@ class Game(DirectObject):
 
   # control camera
   def updateCamera(self):
-    #current state of vehicle
-    direction=self.vehicles[0].getDirection()
-    position=self.vehicles[0].getPosVector()
+    followVehicle = 0
+    direction = self.agents[followVehicle].getPreview(0, 0)[0]
+    direction = direction / np.linalg.norm(direction)
+    position=self.vehicles[followVehicle].getPosVector()
     #camera
-    base.cam.setPos(position[0]-15*direction[0], position[1]-15*direction[1], 4)
+    base.cam.setPos(position[0], position[1]-15*direction[1], 4)
     base.cam.lookAt(position)
+    
+    # #current state of vehicle
+    # direction=self.vehicles[0].getDirection()
+    # position=self.vehicles[0].getPosVector()
+    # #camera
+    # base.cam.setPos(position[0]-15*direction[0], position[1]-15*direction[1], 4)
+    # base.cam.lookAt(position)
+    
 
+  # update path with centralized multi car planner:
+  # get reference multi path
+  # call CFS_planner.Plan_trajectory
+  # update path for every agent
+  def updatePath(self):
+    num_cars = len(self.initAV)
+    if self.replanFlag is True:
+      multi_path = np.zeros((num_cars, self.num_steps, 2))
+      multi_path_log = np.zeros((num_cars, self.num_steps, 2))
+      for i in range(num_cars):
+        if self.agents[i].traj is not None:
+          n = self.agents[i].traj.shape[0]
+          multi_path[i][:n] = self.agents[i].traj[:n]
+          multi_path[i][n:] = self.agents[i].getPreview2([self.agents[i].targetLane],[self.num_steps])[n:]
+        else:
+          multi_path[i] = self.agents[i].getPreview2([self.agents[i].targetLane],[self.num_steps])
+
+      if self.changeFlag is True:
+        if self.scenario is 0:
+          # 2 cars take over with different desired velocity scenario -----
+          self.agents[0].desiredV = 25
+          multi_path[0][2:] = self.agents[0].getPreview2([1,0,1], [10, 20, self.num_steps-10-20])[2:]
+          # ----- 2 cars take over'''
+        elif self.scenario is 1:
+          # 9 cars scenario -----
+          multi_path[0][2:] = self.agents[0].getPreview2([0,1], [10,self.num_steps-10])[2:]
+          self.agents[0].setTargetLane(1)
+          multi_path[1][2:] = self.agents[1].getPreview2([0,1], [5,self.num_steps-5])[2:]
+          self.agents[1].setTargetLane(1)
+          multi_path[3][2:] = self.agents[3].getPreview2([1,2], [5,self.num_steps-5])[2:]
+          self.agents[3].setTargetLane(2)
+          # ----- 9 cars scenario'''
+        self.changeFlag = False
+
+      new_path = CFS_planner.Plan_trajectory(self.MAX_ITER, multi_path, self.min_dist)
+
+      for i in range(num_cars):
+        car_path = np.zeros((self.num_steps, 2))
+        car_path[:, 0] = new_path[2*i : : num_cars*2]
+        car_path[:, 1] = new_path[2*i+1 : : num_cars*2]
+        self.agents[i].traj = car_path
+        multi_path_log[i] = car_path
+      self.traj_log.append(multi_path_log[:,2:,:])
+      self.replanFlag = False
+
+    else:
+      forwardFlag = False
+      for i in range(num_cars):
+        if self.agents[i].traj is not None and len(self.agents[i].traj)>2:
+          pos = self.agents[i].getState()[0]
+          slope = self.agents[i].traj[1] - self.agents[i].traj[0]
+          constant = -slope.dot(self.agents[i].traj[0])
+          if (slope.dot(self.agents[i].traj[1])+constant)*(slope.dot(pos)+constant) > 0:
+              forwardFlag = True
+              break
+        else:
+          self.replanFlag = True
+          break
+      if forwardFlag is True:
+        for i in range(num_cars):
+          self.agents[i].traj = self.agents[i].traj[1:]    
+
+  def updateReplayPath(self):
+    if self.replayIndex < self.replayTrajectories.shape[1]-1:
+      forwardFlag = False
+      for i in range(len(self.initAV)):
+        pos = self.agents[i].getState()[0]
+        slope = self.agents[i].traj[1] - self.agents[i].traj[0]
+        constant = -slope.dot(self.agents[i].traj[0])
+        if (slope.dot(self.agents[i].traj[1])+constant)*(slope.dot(pos)+constant) > 0:
+            forwardFlag = True
+            break
+      if forwardFlag is True:
+        for i in range(len(self.initAV)):
+          self.agents[i].traj = self.replayTrajectories[i,self.replayIndex:self.replayIndex+2,:]
+        self.replayIndex+=1
+        if self.replayIndex == self.changeIdx:
+          self.doLaneChangeDesigned()
+    else:
+      self.doExit()
+
+  def updateLog(self):
+    multi_path_log = self.traj_log.pop()
+    remaining = self.agents[0].traj.shape[0]
+    multi_path_log = multi_path_log[:,:-remaining,:]
+    self.traj_log.append(multi_path_log)
+    idx = 0
+    for i in range(len(self.traj_log)):
+      idx+=self.traj_log[i].shape[1]
+    self.changeIdx.append(idx)
+    
+    
+    
+    
+    
+    
+  def Communication(self):
+      # Send
+      for i in range(len(self.initAV)):
+          self.shared_path[i] = self.agents[i].Communication_Sender()
+      # Receive
+      for i in range(len(self.initAV)):
+          self.agents[i].Communication_Receiver(self.shared_path) 
+#      print('path[0]:',self.shared_path[0])
+    
+  
   # simulation update per step
   def update(self, task):
-    dt = globalClock.getDt()
-    self.vehicles[0].controlInput(self.vehicles[0].agent.doControl())  # agent control
+#    dt = globalClock.getDt()
+#    print(dt) # ~ 0.02s
+
+    # Share path
+    self.Communication()
+    # Distributed planning and control
+    for i in range(len(self.initAV)):
+        self.vehicles[i].controlInput(self.vehicles[i].agent.doControl())     
     
-    for i in range(len(self.initSV)):
-        self.vehicles[i+1].controlInput(self.vehicles[i+1].agent.doControl()) 
-    
-    
-    #self.vehicles[0].processInput(dt,'forward','reverse','turnLeft','turnRight','brake1')  
-    #self.vehicles[1].processInput(dt,'For','Back','Lef','Righ','brake2')    # manual control
-    #self.world.doPhysics(dt, 10, 0.008)
+
     self.world.doPhysics(1.6)
 
     self.updateCamera() 
@@ -278,6 +418,9 @@ class Game(DirectObject):
   def cleanup(self):
     self.world = None
     self.worldNP.removeNode()
+    if len(self.traj_log)>0:
+      log = np.concatenate(self.traj_log, axis=1)
+      np.savez("traj_log", c=self.changeIdx, log=log)
 
   # physical world setup
   def setup(self):
@@ -285,7 +428,7 @@ class Game(DirectObject):
 
     # World
     self.debugNP = self.worldNP.attachNewNode(BulletDebugNode('Debug'))
-    self.debugNP.show()
+    # self.debugNP.show()
 
     self.world = BulletWorld()
     self.world.setGravity(Vec3(0, 0, -9.81))
@@ -313,64 +456,21 @@ class Game(DirectObject):
     self.vehicles=[]
     self.sensors=[]
     
-    self.vehicles.append(basicVehicle(self,[self.initAV[0],self.initAV[1],-0.6],self.initAV[2],length,width,height,axisDis,wheelDis,radius,wheelH)) # [10,0.1,0.5] is vehicle start position
-    self.sensors.append(basicSensor(self))  # initial sensor
-    self.sensors[0].setVehicle(self.vehicles[0])
-    self.vehicles[0].setSensor(self.sensors[0])
-    self.vehicles[0].sensor.align()
-    self.agents[0].setVehicle(self.vehicles[0])
-    self.vehicles[0].setAgent(self.agents[0])
-
-    #Adding laneKeeping vehicles
-    for i in range(len(self.initSV)):
-        self.vehicles.append(surroundingVehicle(self,[self.initSV[i][0],self.initSV[i][1],-0.6],self.initSV[i][2],length,width,height,axisDis,wheelDis,radius,wheelH)) # [10,0.1,0.5] is vehicle start position
+    # Adding autonomous vehicles
+    for i in range(len(self.initAV)):
+        self.vehicles.append(basicVehicle(self,[self.initAV[i][0],self.initAV[i][1],-0.6],self.initAV[i][2],length,width,height,axisDis,wheelDis,radius,wheelH))
         self.sensors.append(basicSensor(self))  # initial sensor
-        self.sensors[i+1].setVehicle(self.vehicles[i+1])
-        self.vehicles[i+1].setSensor(self.sensors[i+1])
-        self.vehicles[i+1].sensor.align()
-        self.agents[i+1].setVehicle(self.vehicles[i+1])
-        self.vehicles[i+1].setAgent(self.agents[i+1])    
-    
-    '''self.vehicles.append(basicVehicle(self,[50,-6,-0.6],30)) # [10,0.1,0.5] is vehicle start position
-    sensor1=basicSensor(self)  # initial sensor
-    sensor1.setVehicle(self.vehicles[1])
-    self.vehicles[1].setSensor(sensor1)
-    self.vehicles[1].sensor.align()
-    #agent1=planningAgent(20,5,40,0,1)   # initial agent
-    agent1=laneKeepingAgent(20,20,30,1)
-    agent1.setVehicle(self.vehicles[1])
-    self.vehicles[1].setAgent(agent1)'''
-    
-    #Surrounding vehicles' speed
-    v1=25
-    v2=25
-    v3=25
-    v4=25
-    
-    '''self.vehicles.append(basicVehicle(self,[60,-6.1,-0.6],v1))
-    self.vehicles.append(basicVehicle(self,[100,-6.1,-0.6],v1))
-    self.vehicles.append(basicVehicle(self,[155,-6.1,-0.6],v1))
-    self.vehicles.append(basicVehicle(self,[215,-6.1,-0.6],v1))
-    self.vehicles.append(basicVehicle(self,[270,-6.1,-0.6],v1))
-    
-    self.vehicles.append(basicVehicle(self,[70,-2,-0.6],v2))
-    self.vehicles.append(basicVehicle(self,[115,-2,-0.6],v2))
-    self.vehicles.append(basicVehicle(self,[165,-2,-0.6],v2))
-    self.vehicles.append(basicVehicle(self,[230,-2,-0.6],v2))
-    self.vehicles.append(basicVehicle(self,[300,-2,-0.6],v2))
+        self.sensors[i].setVehicle(self.vehicles[i])
+        self.vehicles[i].setSensor(self.sensors[i])
+        self.vehicles[i].sensor.align()
+        self.agents[i].setVehicle(self.vehicles[i])
+        self.vehicles[i].setAgent(self.agents[i])
+        self.agents[i].setVehicleIndex(i)
+        self.agents[i].traj = self.agents[i].getRef()
+#        print('i:',self.agents[i].veh_index)
 
-    self.vehicles.append(basicVehicle(self,[90,2,-0.6],v3))
-    self.vehicles.append(basicVehicle(self,[140,2,-0.6],v3))
-    self.vehicles.append(basicVehicle(self,[200,2,-0.6],v3))
-    self.vehicles.append(basicVehicle(self,[250,2,-0.6],v3))
-    self.vehicles.append(basicVehicle(self,[320,2,-0.6],v3))
-
-    self.vehicles.append(basicVehicle(self,[65,6.1,-0.6],v4))
-    self.vehicles.append(basicVehicle(self,[130,6.1,-0.6],v4))
-    self.vehicles.append(basicVehicle(self,[220,6.1,-0.6],v4))
-    self.vehicles.append(basicVehicle(self,[275,6.1,-0.6],v4))
-    self.vehicles.append(basicVehicle(self,[350,6.1,-0.6],v4))'''
+        
+    print('Set up completed')
     
-
 game = Game()
 base.run()

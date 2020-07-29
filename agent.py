@@ -771,6 +771,7 @@ class mccfsAgent(laneKeepingAgent):
         super().__init__(vGain,thetaGain,desiredV,laneId)
         self.traj = None
 
+        
     def getPreview(self,laneId=0,length=20):
         return self.vehicle.sensor.getLineInRange(0,length,laneId)
 
@@ -823,7 +824,7 @@ class mccfsAgent(laneKeepingAgent):
         if dev<4:
             return 2
         return 3 
-
+    
     # Get distance to the planned trajectory
     def getDis2Traj(self,lf=1):
         return np.cross((self.traj[1]-self.traj[0])/np.linalg.norm(self.traj[1]-self.traj[0]),self.getPos()-self.traj[0])
@@ -858,17 +859,16 @@ class mccfsAgent(laneKeepingAgent):
         
         
 class dcfsAgent(laneKeepingAgent):
-    def __init__(self,vGain=20,thetaGain=20,desiredV=40,laneId=0,veh_index):
+    def __init__(self,vGain=0.20,thetaGain=200,desiredV=40,laneId=0):
         super().__init__(vGain,thetaGain,desiredV,laneId)
-        self.veh_index = veh_index
         self.traj = None
         self.share_traj = None
-        self.horizon = 20
-        self.ts = 0.1
+        self.veh_index = None
+        self.horizon = 40
+        self.ts = 0.05
 
     def getPreview(self,laneId=0,length=20):
         return self.vehicle.sensor.getLineInRange(0,length,laneId)
-
 
     def getCurrLaneId(self):
         dev=-self.vehicle.sensor.getCordPos(0)[0]-6
@@ -880,6 +880,9 @@ class dcfsAgent(laneKeepingAgent):
             return 2
         return 3 
 
+    def setVehicleIndex(self,veh_index):
+        self.veh_index = veh_index
+        
     # Get distance to the planned trajectory
     def getDis2Traj(self):
         return np.cross((self.traj[1]-self.traj[0])/np.linalg.norm(self.traj[1]-self.traj[0]),self.getPos()-self.traj[0])
@@ -894,22 +897,31 @@ class dcfsAgent(laneKeepingAgent):
     def Communication_Sender(self):
         return self.traj        
 
-
-    def DCFSTraj(self,dt):
+    # Get reference traj
+    def getRef(self):
         x_ref = self.vehicle.sensor.getRefInRange(self.desiredV,self.horizon,self.ts,self.targetLane)
-        traj = DCFS.Opt_solver(self.getPos(), x_ref, self.veh_index, self.share_traj, self.ts, dt)
+#        print(self.veh_index,',Ref:',x_ref)
+        return x_ref
+    
+    def DCFSTraj(self,dt):       
+        traj = DCFS.Opt_solver(self.getPos(), self.getRef(), self.veh_index, self.share_traj, self.ts, self.ts)
         return traj
     
     def getFeedbackControl(self,diffAngle,diffPos,diffPosV):
         acceleration=self.vGain*(self.desiredV*math.cos(diffAngle)-self.getVelocity())
-        steer=-self.thetaGain*diffAngle/(self.getVelocity()+1)-5*self.vehicle.getAngleVelocity()-20*diffPos-20*diffPosV
+        steer=-self.thetaGain*diffAngle/(self.getVelocity()+1)-2*self.vehicle.getAngleVelocity()-10*diffPos-10*diffPosV
         return [acceleration,steer]
     
     def previewController(self,dt):                
         
         self.getDis(self.targetLane)    # need this function to update self.cordNum
         
-        self.traj = DCFSTraj(dt)
+        self.traj = self.DCFSTraj(dt)
+        print('Veh:',self.veh_index)
+#        print('Pos:',self.getPos())
+        print('Traj:',self.traj)
+        print('Ref:',np.array(self.getRef()))
+        print('--------------------')
         
         diffPosV = self.vehicle.sensor.getCordVelocity(self.traj[:2])
         fb=self.getFeedbackControl(self.getAngle(), self.getDis2Traj(), diffPosV)
@@ -922,9 +934,10 @@ class dcfsAgent(laneKeepingAgent):
             steerV = steeringLimit
         if steerV < -steeringLimit:
             steerV = -steeringLimit
+#        print('acceleration,steerV:',acceleration,steerV)
         return [acceleration,steerV,0]
         
-    def doControl(self,dt):  # dt is simulation time step       
+    def doControl(self,dt = 0.02):  # dt is simulation time step
         return self.previewController(dt)
 
 

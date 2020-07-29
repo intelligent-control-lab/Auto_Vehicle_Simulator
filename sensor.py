@@ -148,6 +148,7 @@ class basicSensor:
     # get a piece of centerline reference path with dsired velocity, horizon and time step
     def getRefInRange(self,desiredV,horizon,ts,laneId):
         space = math.ceil(ts*desiredV/self.game.precision)
+        print('space:',space,desiredV,ts,self.game.precision)
         ref_path = self.lines[laneId][self.cordNum:(self.cordNum+space*horizon):space]
         return ref_path
 
