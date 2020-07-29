@@ -74,8 +74,7 @@ def Opt_obj_func(x_ref, cq = [1,0,1], cs = [1,0,1], ts = 1, SCCFS = False, slack
 #     if SCCFS is True: # append slack variables
 #         x_rs = np.append(x_rs, [0] * h * n_ob)
 # =============================================================================
-    
-#    x_origin = x_ref
+
     
     I = np.identity(horizon * dimension)
 #    print(I)
@@ -232,9 +231,6 @@ def convex_hull_2d_2_feasible_set(ego_pos, obs_pos = [], obs_vel = []):
     
     line_set = []
     
-#    n_obs = len(obs_pos)
-#    for i in range(n_obs):
-    
     # vehicle parameter
     vh_l = 2.8 + 1.0
     vh_w = 1.2 + 0.6        
@@ -257,12 +253,6 @@ def convex_hull_2d_2_feasible_set(ego_pos, obs_pos = [], obs_vel = []):
         v2 = [X[0] - a*V[0] - b*V[1], X[1] - a*V[1] + b*V[0]]   # lower left
         v3 = [X[0] + a*V[0] - b*V[1], X[1] + a*V[1] + b*V[0]]   # upper left        
 
-        
-#        obs = obs_pos[i]
-#        v0 = [obs[0] - vh_w / 2, obs[1] + vh_l / 2]
-#        v1 = [obs[0] + vh_w / 2, obs[1] + vh_l / 2]
-#        v2 = [obs[0] + vh_w / 2, obs[1] - vh_l / 2]
-#        v3 = [obs[0] - vh_w / 2, obs[1] - vh_l / 2]
         
 # =============================================================================
 #       a = vh_l / 2
@@ -372,3 +362,8 @@ def distancePointMesh(point, vertices):
     ret_const /= n
 
     return ret_normal, ret_const, ret_dist, ret_land_point
+
+
+
+
+
