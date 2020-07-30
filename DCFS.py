@@ -14,7 +14,7 @@ solvers.options['show_progress'] = False
 
 
 
-def Opt_solver(pos, x_ref, veh_index, shared_path, ts, dt):
+def Opt_solver(pos, x_ref, veh_index, shared_path, ts, dt, SCCFS = True):
     '''
     Generate objective function in the form of 1/2x'Px+q'x. 
     Inputs:
@@ -41,12 +41,14 @@ def Opt_solver(pos, x_ref, veh_index, shared_path, ts, dt):
 #    print('shifted_shared_path:',shifted_shared_path) 
     
     # Optimization problem formulation
-    P, q = Opt_obj_func(x_ref, cq = [1,0,10], cs = [1,0,1], ts = 1)
-    G, h, A, b = Opt_constraints(pos, veh_index, start, shifted_shared_path, ts, min_dis = 3) 
+    P, q = Opt_obj_func(x_ref, cq = [1,0,10], cs = [1,0,1], ts = 1, SCCFS = SCCFS)
+    G, h, A, b = Opt_constraints(pos, veh_index, start, shifted_shared_path, ts, min_dis = 3, SCCFS = SCCFS) 
 
-    sol = solvers.qp(P, q, G, h)
-#    sol = solvers.qp(P, q, G, h, A, b)
+#    sol = solvers.qp(P, q, G, h)
+    sol = solvers.qp(P, q, G, h, A, b)
     x_sol = sol['x']
+    if SCCFS is True: # slack variables
+        x_sol = sol['x'][:-2]
     x_sol = np.reshape(x_sol, (horizon, dim))
     
     return x_sol
@@ -66,7 +68,11 @@ def Opt_obj_func(x_ref, cq = [1,0,1], cs = [1,0,1], ts = 1, SCCFS = False, slack
     x_ref = np.array(x_ref)
     horizon = x_ref.shape[0]    
     dimension = x_ref.shape[1] # would be 2 (x and y)
+    SV = 0 # slack variables
     x_ref = np.reshape(x_ref, (x_ref.size, 1)) # flatten to one dimension for applying qp, in the form of x0,y0,x1,y1,...
+    if SCCFS is True: # slack variables
+        x_ref = np.append(x_ref, [0]*2)
+        SV = 2
     
 # =============================================================================
 #     x_rs = np.append(x_rs, [1]) # constant attribute
@@ -76,11 +82,11 @@ def Opt_obj_func(x_ref, cq = [1,0,1], cs = [1,0,1], ts = 1, SCCFS = False, slack
 # =============================================================================
 
     
-    I = np.identity(horizon * dimension)
+    I = np.identity(horizon * dimension + SV)
 #    print(I)
 
     # Velocity is used to calculate the velocities at each time step
-    Velocity = np.zeros(((horizon - 1) * dimension, horizon * dimension))
+    Velocity = np.zeros(((horizon - 1) * dimension, horizon * dimension + SV))
     for i in range(len(Velocity)):
         Velocity[i][i] = 1.0
         Velocity[i][i + dimension] = -1.0
@@ -88,7 +94,7 @@ def Opt_obj_func(x_ref, cq = [1,0,1], cs = [1,0,1], ts = 1, SCCFS = False, slack
 #    print(Velocity)
     
     # Acceleration is used to calculate the accelerations at each time step. See Eq(12) in the FOAD paper
-    Acceleration = np.zeros(((horizon - 2) * dimension, horizon * dimension))
+    Acceleration = np.zeros(((horizon - 2) * dimension, horizon * dimension + SV))
     for i in range(len(Acceleration)):
         Acceleration[i][i] = 1.0
         Acceleration[i][i + dimension] = -2.0
@@ -142,7 +148,7 @@ def Opt_obj_func(x_ref, cq = [1,0,1], cs = [1,0,1], ts = 1, SCCFS = False, slack
     return P, q
 
 
-def Opt_constraints(pos, veh_index, start, shared_path, ts = 1, min_dis = 0.2):
+def Opt_constraints(pos, veh_index, start, shared_path, ts = 1, min_dis = 0.2, SCCFS = True):
     '''
     Generate constraints in the form of Gx <= h & Ax = b. 
     Inputs:
@@ -163,10 +169,13 @@ def Opt_constraints(pos, veh_index, start, shared_path, ts = 1, min_dis = 0.2):
 #    obs_path = shared_path[L] 
     obs_path = np.delete(shared_path, veh_index, 0)
     ego_path = shared_path[veh_index]
-    
+
+    SV = 0 # slack variables
+    if SCCFS is True: # slack variables
+        SV = 2    
     
     # Inequality constraints: convex feasible set
-    G = np.zeros((horizon * num_obs, horizon * dim))
+    G = np.zeros((horizon * num_obs, horizon * dim + SV))
     h = np.zeros((horizon * num_obs, 1))
     
     start = 0
@@ -202,11 +211,14 @@ def Opt_constraints(pos, veh_index, start, shared_path, ts = 1, min_dis = 0.2):
     h = matrix(h,(len(h),1),'d')
     
     # Equality constraints: fix vehicle's initial position
-    A = np.zeros((dim, horizon * dim))
+    A = np.zeros((dim, horizon * dim + SV))
     b = np.zeros((len(A), 1))
            
     A[0][0] = 1
-    A[1][1] = 1
+    A[1][1] = 1    
+    if SCCFS is True: # slack variables
+        A[0][-2] = 1
+        A[1][-1] = 1
     b[0] = pos[0]
     b[1] = pos[1]
 #    print(A.shape)
@@ -232,8 +244,8 @@ def convex_hull_2d_2_feasible_set(ego_pos, obs_pos = [], obs_vel = []):
     line_set = []
     
     # vehicle parameter
-    vh_l = 2.8 + 1.0
-    vh_w = 1.2 + 0.6        
+    vh_l = 2.8 + 1.0  # 2.8 + 4.0
+    vh_w = 1.2 + 0.8        
             
     a = vh_l / 2
     b = vh_w / 2

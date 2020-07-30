@@ -865,7 +865,7 @@ class dcfsAgent(laneKeepingAgent):
         self.share_traj = None
         self.veh_index = None
         self.horizon = 40
-        self.ts = 0.05
+        self.ts = 0.25
 
     def getPreview(self,laneId=0,length=20):
         return self.vehicle.sensor.getLineInRange(0,length,laneId)
@@ -904,7 +904,7 @@ class dcfsAgent(laneKeepingAgent):
         return x_ref
     
     def DCFSTraj(self,dt):       
-        traj = DCFS.Opt_solver(self.getPos(), self.getRef(), self.veh_index, self.share_traj, self.ts, self.ts)
+        traj = DCFS.Opt_solver(self.getPos(), self.getRef(), self.veh_index, self.share_traj, self.ts, 0, SCCFS = True)
         return traj
     
     def getFeedbackControl(self,diffAngle,diffPos,diffPosV):
@@ -918,7 +918,7 @@ class dcfsAgent(laneKeepingAgent):
         
         self.traj = self.DCFSTraj(dt)
         print('Veh:',self.veh_index)
-#        print('Pos:',self.getPos())
+        print('Pos:',self.getPos(),self.horizon)
         print('Traj:',self.traj)
         print('Ref:',np.array(self.getRef()))
         print('--------------------')

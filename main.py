@@ -11,12 +11,18 @@
 #loadPrcFileData('', 'load-display tinydisplay')
 from __future__ import division
 import sys
-import direct.directbase.DirectStart
+import os
 import numpy as np
 import math
 
+import direct.directbase.DirectStart
 from direct.showbase.DirectObject import DirectObject
 from direct.showbase.InputStateGlobal import inputState
+from direct.interval.IntervalGlobal import *
+from direct.gui.DirectGui import OnscreenText
+from direct.showbase.DirectObject import DirectObject
+from direct.actor import Actor
+from random import *
 
 from panda3d.core import AmbientLight
 from panda3d.core import DirectionalLight
@@ -25,7 +31,7 @@ from panda3d.core import Vec4
 from panda3d.core import Point3
 from panda3d.core import TransformState
 from panda3d.core import BitMask32
-
+from panda3d.core import *
 from panda3d.bullet import BulletWorld
 from panda3d.bullet import BulletPlaneShape
 from panda3d.bullet import BulletBoxShape
@@ -33,24 +39,12 @@ from panda3d.bullet import BulletRigidBodyNode
 from panda3d.bullet import BulletDebugNode
 from panda3d.bullet import BulletVehicle
 from panda3d.bullet import ZUp
+
 from vehicle import *
 from road import *
 from sensor import *
 from agent import *
-import CFS_planner
 import matplotlib.pyplot as plt
-
-from panda3d.core import *
-import sys
-import os
-
-import direct.directbase.DirectStart
-from direct.interval.IntervalGlobal import *
-from direct.gui.DirectGui import OnscreenText
-from direct.showbase.DirectObject import DirectObject
-from direct.actor import Actor
-from random import *
-
 
 
 class Game(DirectObject):
@@ -90,60 +84,63 @@ class Game(DirectObject):
     floor.setTexture(floorTex)
     #floor.flattenStrong()
     
-    # grass background generation
-    '''floorTex1 = loader.loadTexture('maps/envir-ground.jpg')
-    cm1 = CardMaker('')
-    cm1.setFrame(-2, 2, -2, 2)
-    floor1 = render.attachNewNode(PandaNode("floor1"))
-    for y in range(400):
-        for x in range(22):
-            nn1 = floor1.attachNewNode(cm1.generate())
-            nn1.setP(-90)
-            nn1.setPos((x - 10) * 4, (y - 20) * 4, -1.1)
-    floor1.setTexture(floorTex1)
-    floor1.flattenStrong()'''
-
-    # central planner settings
-    self.scenario = 0                   # specify a scenario
-    self.replayFile = "traj_log_2.npz"  # specify a filename to replay
-
-    self.replanFlag = True
-    self.changeFlag = False
-    self.MAX_ITER = 20
-    self.min_dist = 3.9
-    self.num_steps = 20
-    self.replayTrajectories = None
-    self.replayIndex = 0
-    self.changeIdx = []
-
-    if self.replayFile is "traj_log_2.npz":
-      self.scenario = 0
-    elif self.replayFile is "traj_log_9.npz":
-      self.scenario = 1
-    self.traj_log = []
-
-
     
-    # initial automated vehicle
-    self.scenario = 0
-    
+    # initial automated vehicle   
     self.initAV=[]
     self.agents=[]
-
-    if self.scenario is 0:
-      # 2 cars take over with different desired velocity scenario -----
+    
+    self.scenario = 0
+    # Overtaking
+    if self.scenario is 0:      
       desiredV=10
-      
+      self.horizon = 30
+      self.ts = 0.25      
       # car 0 **
       self.initAV.append([0,-2,desiredV])
-      self.agents.append(dcfsAgent(vGain=2,thetaGain=100,desiredV=desiredV,laneId=1))
+      self.agents.append(dcfsAgent(vGain=5,thetaGain=50,desiredV=desiredV,laneId=1))
       # car 1 **
       self.initAV.append([20,-2,desiredV])
-      self.agents.append(dcfsAgent(vGain=2,thetaGain=100,desiredV=desiredV,laneId=1))
+      self.agents.append(dcfsAgent(vGain=5,thetaGain=50,desiredV=desiredV,laneId=1))
+      # car 2 **
+      self.initAV.append([10,2,desiredV])
+      self.agents.append(dcfsAgent(vGain=5,thetaGain=50,desiredV=desiredV,laneId=2))
+    
+    # Platoon formation: deadlock
+    elif self.scenario is 1:      
+      desiredV=20   
+      self.horizon = 30
+      self.ts = 0.25      
+      # car 0 **
+      self.initAV.append([0,-6,desiredV])
+      self.agents.append(dcfsAgent(vGain=5,thetaGain=50,desiredV=desiredV,laneId=0))
+      # car 1 **
+      self.initAV.append([0,2,desiredV])
+      self.agents.append(dcfsAgent(vGain=5,thetaGain=50,desiredV=desiredV,laneId=2))
+#      # car 2 **
+#      self.initAV.append([12,-6,desiredV])
+#      self.agents.append(dcfsAgent(vGain=5,thetaGain=50,desiredV=desiredV,laneId=0)) 
+    
+    # Platoon formation
+    elif self.scenario is 2:      
+      desiredV=20      
+      self.horizon = 20
+      self.ts = 0.25
+      # car 0 **
+      self.initAV.append([0,-6,desiredV])
+      self.agents.append(dcfsAgent(vGain=5,thetaGain=50,desiredV=desiredV,laneId=0))
+      # car 1 **
+      self.initAV.append([6,2,desiredV])
+      self.agents.append(dcfsAgent(vGain=5,thetaGain=50,desiredV=desiredV,laneId=2))
+      # car 2 **
+      self.initAV.append([12,-6,desiredV])
+      self.agents.append(dcfsAgent(vGain=5,thetaGain=50,desiredV=desiredV,laneId=0)) 
+      # car 3 **
+      self.initAV.append([18,2,desiredV])
+      self.agents.append(dcfsAgent(vGain=5,thetaGain=50,desiredV=desiredV,laneId=2))    
+    
+    # 9 cars scenario   
+    elif self.scenario is 9:
       
-      # ----- 2 cars take over'''
-    elif self.scenario is 1:
-      # 9 cars scenario -----
       desiredV=20
       self.num_steps = 20
       # car 0 **
@@ -177,7 +174,7 @@ class Game(DirectObject):
     
     self.dim = 2
     self.num_veh = len(self.initAV)
-    self.horizon = self.agents[0].horizon
+#    self.horizon = self.agents[0].horizon
     self.shared_path = np.zeros((self.num_veh, self.horizon, self.dim))
 
     # initial camera
@@ -207,21 +204,8 @@ class Game(DirectObject):
     self.accept('f5', self.doScreenshot)
     self.accept('u', self.doLaneChangeLeft)
     self.accept('o', self.doLaneChangeRight)
-    self.accept('c', self.doLaneChangeDesigned)
-
-    # inputState.watchWithModifiers('forward', 'w')
-    # inputState.watchWithModifiers('reverse', 's')
-    # inputState.watchWithModifiers('turnLeft', 'a')
-    # inputState.watchWithModifiers('turnRight', 'd')
-    # inputState.watchWithModifiers('brake1', 'x')
-
-    # inputState.watchWithModifiers('For', 'i')
-    # inputState.watchWithModifiers('Back', 'k')
-    # inputState.watchWithModifiers('Lef', 'j')
-    # inputState.watchWithModifiers('Righ', 'l')
-    # inputState.watchWithModifiers('brake2', 'space')
+    self.accept('c', self.doChangeDesigned)
     
-
     # Task manager
     taskMgr.add(self.update, 'updateWorld')
 
@@ -229,14 +213,18 @@ class Game(DirectObject):
     self.setup()
 
   # _____HANDLER_____
-  def doLaneChangeDesigned(self):
-#    if self.replayFile is None:
-#      self.replanFlag = True
-#      self.changeFlag = True
-#      self.updateLog()
-#    else:
+  def doChangeDesigned(self):
       if self.scenario is 0:
           self.agents[0].desiredV = 3*self.agents[0].desiredV
+      elif self.scenario is 1:
+          self.vehicles[0].agent.targetLane=1
+          self.vehicles[1].agent.targetLane=1
+#          self.vehicles[2].agent.targetLane=1
+      elif self.scenario is 2:
+          self.vehicles[0].agent.targetLane=1
+          self.vehicles[1].agent.targetLane=1
+          self.vehicles[2].agent.targetLane=1
+          self.vehicles[3].agent.targetLane=1
 #      print("Do lane change")
 
   def doLaneChangeLeft(self):
@@ -290,6 +278,9 @@ class Game(DirectObject):
     # base.cam.lookAt(position)
     
 
+
+
+
   # update path with centralized multi car planner:
   # get reference multi path
   # call CFS_planner.Plan_trajectory
@@ -312,7 +303,7 @@ class Game(DirectObject):
           # 2 cars take over with different desired velocity scenario -----
           self.agents[0].desiredV = 25
           multi_path[0][2:] = self.agents[0].getPreview2([1,0,1], [10, 20, self.num_steps-10-20])[2:]
-          # ----- 2 cars take over'''
+          # ----- 2 cars take over
         elif self.scenario is 1:
           # 9 cars scenario -----
           multi_path[0][2:] = self.agents[0].getPreview2([0,1], [10,self.num_steps-10])[2:]
@@ -321,7 +312,7 @@ class Game(DirectObject):
           self.agents[1].setTargetLane(1)
           multi_path[3][2:] = self.agents[3].getPreview2([1,2], [5,self.num_steps-5])[2:]
           self.agents[3].setTargetLane(2)
-          # ----- 9 cars scenario'''
+          # ----- 9 cars scenario
         self.changeFlag = False
 
       new_path = CFS_planner.Plan_trajectory(self.MAX_ITER, multi_path, self.min_dist)
@@ -379,9 +370,8 @@ class Game(DirectObject):
     idx = 0
     for i in range(len(self.traj_log)):
       idx+=self.traj_log[i].shape[1]
-    self.changeIdx.append(idx)
-    
-    
+    self.changeIdx.append(idx)   
+  
     
     
     
@@ -407,9 +397,7 @@ class Game(DirectObject):
     for i in range(len(self.initAV)):
         self.vehicles[i].controlInput(self.vehicles[i].agent.doControl())     
     
-
     self.world.doPhysics(1.6)
-
     self.updateCamera() 
     
     return task.cont
@@ -418,9 +406,9 @@ class Game(DirectObject):
   def cleanup(self):
     self.world = None
     self.worldNP.removeNode()
-    if len(self.traj_log)>0:
-      log = np.concatenate(self.traj_log, axis=1)
-      np.savez("traj_log", c=self.changeIdx, log=log)
+#    if len(self.traj_log)>0:
+#      log = np.concatenate(self.traj_log, axis=1)
+#      np.savez("traj_log", c=self.changeIdx, log=log)
 
   # physical world setup
   def setup(self):
@@ -465,10 +453,10 @@ class Game(DirectObject):
         self.vehicles[i].sensor.align()
         self.agents[i].setVehicle(self.vehicles[i])
         self.vehicles[i].setAgent(self.agents[i])
-        self.agents[i].setVehicleIndex(i)
+        self.agents[i].setVehicleIndex(i)        
+        self.agents[i].horizon = self.horizon
+        self.agents[i].ts = self.ts
         self.agents[i].traj = self.agents[i].getRef()
-#        print('i:',self.agents[i].veh_index)
-
         
     print('Set up completed')
     
