@@ -90,76 +90,74 @@ class Game(DirectObject):
     self.initAV=[]
     self.agents=[]
     
-    # 0: distributed MPC; 1: Centralized MPC
-    self.planning_mode = 0
+
     
     self.scenario = 0
 
     # D-MPC   
-    if self.planning_mode is 0:
-        # Overtaking
-        if self.scenario is 0:      
-          desiredV=10
-          self.horizon = 30
-          self.ts = 0.25
-          # car 0 **
-          self.initAV.append([0,-2,desiredV])
-          self.agents.append(dcfsAgent(vGain=5,thetaGain=50,desiredV=desiredV,laneId=1))
-          # car 1 **
-          self.initAV.append([20,-2,desiredV])
-          self.agents.append(dcfsAgent(vGain=5,thetaGain=50,desiredV=desiredV,laneId=1))
-          # car 2 **
-          self.initAV.append([30,2,desiredV])
-          self.agents.append(dcfsAgent(vGain=5,thetaGain=50,desiredV=desiredV,laneId=2))
-          # car 3 **
-          self.initAV.append([40,-6,desiredV])
-          self.agents.append(dcfsAgent(vGain=5,thetaGain=50,desiredV=desiredV,laneId=0))    
-          # car 4 **
-          self.initAV.append([60,-2,desiredV])
-          self.agents.append(dcfsAgent(vGain=5,thetaGain=50,desiredV=desiredV,laneId=1))
-    
-        # Crossing
-        elif self.scenario is 1:
-          desiredV=10   
-          self.horizon = 30
-          self.ts = 0.05
-          # car 0 **
-          self.initAV.append([0,-6,desiredV])
-          self.agents.append(dcfsAgent(vGain=5,thetaGain=50,desiredV=desiredV,laneId=0))
-          # car 1 **
-          self.initAV.append([0,2,desiredV])
-          self.agents.append(dcfsAgent(vGain=5,thetaGain=50,desiredV=desiredV,laneId=2))    
-    
-        # Platoon formation
-        elif self.scenario is 2:
-          desiredV=20      
-          self.horizon = 20
-          self.ts = 0.05
-          # car 0 **
-          self.initAV.append([0,-6,desiredV])
-          self.agents.append(dcfsAgent(vGain=5,thetaGain=50,desiredV=desiredV,laneId=0))
-          # car 1 **
-          self.initAV.append([6,2,desiredV])
-          self.agents.append(dcfsAgent(vGain=5,thetaGain=50,desiredV=desiredV,laneId=2))
-          # car 2 **
-          self.initAV.append([12,-6,desiredV])
-          self.agents.append(dcfsAgent(vGain=5,thetaGain=50,desiredV=desiredV,laneId=0)) 
-          # car 3 **
-          self.initAV.append([18,2,desiredV])
-          self.agents.append(dcfsAgent(vGain=5,thetaGain=50,desiredV=desiredV,laneId=2))    
-    
-    
-        # Platoon formation: deadlock
-        elif self.scenario is 3:      
-          desiredV=20   
-          self.horizon = 30
-          self.ts = 0.05   
-          # car 0 **
-          self.initAV.append([0,-6,desiredV])
-          self.agents.append(dcfsAgent(vGain=5,thetaGain=50,desiredV=desiredV,laneId=0))
-          # car 1 **
-          self.initAV.append([0,2,desiredV])
-          self.agents.append(dcfsAgent(vGain=5,thetaGain=50,desiredV=desiredV,laneId=2))
+    # Overtaking
+    if self.scenario is 0:      
+      desiredV=10
+      self.horizon = 30
+      self.ts = 0.25
+      # car 0 **
+      self.initAV.append([0,-2,desiredV])
+      self.agents.append(dcfsAgent(vGain=5,thetaGain=50,desiredV=desiredV,laneId=1))
+      # car 1 **
+      self.initAV.append([20,-2,desiredV])
+      self.agents.append(dcfsAgent(vGain=5,thetaGain=50,desiredV=desiredV,laneId=1))
+      # car 2 **
+      self.initAV.append([30,2,desiredV])
+      self.agents.append(dcfsAgent(vGain=5,thetaGain=50,desiredV=desiredV,laneId=2))
+      # car 3 **
+      self.initAV.append([40,-6,desiredV])
+      self.agents.append(dcfsAgent(vGain=5,thetaGain=50,desiredV=desiredV,laneId=0))    
+      # car 4 **
+      self.initAV.append([60,-2,desiredV])
+      self.agents.append(dcfsAgent(vGain=5,thetaGain=50,desiredV=desiredV,laneId=1))
+
+    # Crossing
+    elif self.scenario is 1:
+      desiredV=10   
+      self.horizon = 30
+      self.ts = 0.05
+      # car 0 **
+      self.initAV.append([0,-6,desiredV])
+      self.agents.append(dcfsAgent(vGain=5,thetaGain=50,desiredV=desiredV,laneId=0))
+      # car 1 **
+      self.initAV.append([0,2,desiredV])
+      self.agents.append(dcfsAgent(vGain=5,thetaGain=50,desiredV=desiredV,laneId=2))    
+
+    # Platoon formation
+    elif self.scenario is 2:
+      desiredV=20      
+      self.horizon = 20
+      self.ts = 0.05
+      # car 0 **
+      self.initAV.append([0,-6,desiredV])
+      self.agents.append(dcfsAgent(vGain=5,thetaGain=50,desiredV=desiredV,laneId=0))
+      # car 1 **
+      self.initAV.append([6,2,desiredV])
+      self.agents.append(dcfsAgent(vGain=5,thetaGain=50,desiredV=desiredV,laneId=2))
+      # car 2 **
+      self.initAV.append([12,-6,desiredV])
+      self.agents.append(dcfsAgent(vGain=5,thetaGain=50,desiredV=desiredV,laneId=0)) 
+      # car 3 **
+      self.initAV.append([18,2,desiredV])
+      self.agents.append(dcfsAgent(vGain=5,thetaGain=50,desiredV=desiredV,laneId=2))    
+
+
+    # Platoon formation: deadlock
+    elif self.scenario is 3:      
+      desiredV=20   
+      self.horizon = 30
+      self.ts = 0.05   
+      # car 0 **
+      self.initAV.append([0,-6,desiredV])
+      self.agents.append(dcfsAgent(vGain=5,thetaGain=50,desiredV=desiredV,laneId=0))
+      # car 1 **
+      self.initAV.append([0,2,desiredV])
+      self.agents.append(dcfsAgent(vGain=5,thetaGain=50,desiredV=desiredV,laneId=2))
 #          # car 2 **
 #          self.initAV.append([0,-2,desiredV])
 #          self.agents.append(dcfsAgent(vGain=5,thetaGain=50,desiredV=desiredV,laneId=1)) 
@@ -188,77 +186,6 @@ class Game(DirectObject):
 
 
 
-    # C-MPC  
-    elif self.planning_mode is 1:
-        # Overtaking
-        if self.scenario is 0:      
-          desiredV=10
-          self.horizon = 30
-          self.ts = 0.05
-          # car 0 **
-          self.initAV.append([0,-2,desiredV])
-          self.agents.append(ccfsAgent(vGain=2,thetaGain=10,desiredV=desiredV,laneId=1))
-          # car 1 **
-          self.initAV.append([20,-2,desiredV])
-          self.agents.append(ccfsAgent(vGain=5,thetaGain=50,desiredV=desiredV,laneId=1))
-          # car 2 **
-          self.initAV.append([30,2,desiredV])
-          self.agents.append(ccfsAgent(vGain=5,thetaGain=50,desiredV=desiredV,laneId=2))
-          # car 3 **
-          self.initAV.append([40,-6,desiredV])
-          self.agents.append(ccfsAgent(vGain=5,thetaGain=50,desiredV=desiredV,laneId=0))    
-          # car 4 **
-          self.initAV.append([60,-2,desiredV])
-          self.agents.append(ccfsAgent(vGain=5,thetaGain=50,desiredV=desiredV,laneId=1))
-    
-        # Crossing: collision due to no adding priority constraints. Ref: DSCC20
-        elif self.scenario is 1:
-          desiredV=10   
-          self.horizon = 30
-          self.ts = 0.02
-          # car 0 **
-          self.initAV.append([0,-6,desiredV])
-          self.agents.append(ccfsAgent(vGain=5,thetaGain=50,desiredV=desiredV,laneId=0))
-          # car 1 **
-          self.initAV.append([0,2,desiredV])
-          self.agents.append(ccfsAgent(vGain=5,thetaGain=50,desiredV=desiredV,laneId=2))    
-    
-        # Platoon formation
-        elif self.scenario is 2:
-          desiredV=20      
-          self.horizon = 20
-          self.ts = 0.05
-          # car 0 **
-          self.initAV.append([0,-6,desiredV])
-          self.agents.append(ccfsAgent(vGain=5,thetaGain=50,desiredV=desiredV,laneId=0))
-          # car 1 **
-          self.initAV.append([6,2,desiredV])
-          self.agents.append(ccfsAgent(vGain=5,thetaGain=50,desiredV=desiredV,laneId=2))
-          # car 2 **
-          self.initAV.append([12,-6,desiredV])
-          self.agents.append(ccfsAgent(vGain=5,thetaGain=50,desiredV=desiredV,laneId=0)) 
-          # car 3 **
-          self.initAV.append([18,2,desiredV])
-          self.agents.append(ccfsAgent(vGain=5,thetaGain=50,desiredV=desiredV,laneId=2))    
-    
-    
-        # Platoon formation: no deadlock
-        elif self.scenario is 3:      
-          desiredV=20   
-          self.horizon = 30
-          self.ts = 0.1
-          # car 0 **
-          self.initAV.append([0,-6,desiredV])
-          self.agents.append(ccfsAgent(vGain=5,thetaGain=50,desiredV=desiredV,laneId=0))
-          # car 1 **
-          self.initAV.append([0,2,desiredV])
-          self.agents.append(ccfsAgent(vGain=5,thetaGain=50,desiredV=desiredV,laneId=2))
-#          # car 2 **
-#          self.initAV.append([4,-2,desiredV])
-#          self.agents.append(ccfsAgent(vGain=5,thetaGain=50,desiredV=desiredV,laneId=1))
-
-
-      
       
     self.dim = 2
     self.num_veh = len(self.initAV)
@@ -467,34 +394,7 @@ class Game(DirectObject):
     self.changeIdx.append(idx)   
   
     
-    
-  def Central_planner(self):
-      # Get position
-      for i in range(len(self.initAV)):
-          self.pos[i] = self.agents[i].getPos()
-      # Get ref traj
-      for i in range(len(self.initAV)):
-          self.ref_path[i] = self.agents[i].getRef()
-          
-      if self.scenario is 0:          
-          for i in range(self.num_veh):
-            self.shared_path[i][:self.horizon-1] = self.shared_path[i][1:]
-            self.shared_path[i][self.horizon-1:] = self.shared_path[i][-1] 
-          self.ref_path = self.shared_path*3/10+self.ref_path*7/10
-      
-      # Planning
-      self.shared_path = DCFS.Centralized_solver(self.pos, self.ref_path, self.num_veh, self.horizon, self.dim)
-          
-      # Send traj
-      for i in range(len(self.initAV)):
-          self.agents[i].Communication_Receiver(self.shared_path[i]) 
-      
-      # Control
-      for i in range(len(self.initAV)):
-          self.vehicles[i].controlInput(self.vehicles[i].agent.doControl()) 
 
-
-    
   def Communication(self):
       # Send
       for i in range(len(self.initAV)):
@@ -509,18 +409,13 @@ class Game(DirectObject):
   def update(self, task):
 #    dt = globalClock.getDt()
 #    print(dt) # ~ 0.02s
-    
-    if self.planning_mode is 0:  
-        # Share path
-        self.Communication()
-        # Distributed planning and control
-        for i in range(len(self.initAV)):
-            self.vehicles[i].controlInput(self.vehicles[i].agent.doControl()) 
-            
-    elif self.planning_mode is 1:
-        self.Central_planner()
-        
-        
+ 
+    # Share path
+    self.Communication()
+    # Distributed planning and control
+    for i in range(len(self.initAV)):
+        self.vehicles[i].controlInput(self.vehicles[i].agent.doControl()) 
+
     self.world.doPhysics(1.6)
     self.updateCamera() 
     
