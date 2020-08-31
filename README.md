@@ -1,4 +1,4 @@
-Auto Vehicle Simulator - Distributed CFS
+Auto Vehicle Simulator - CFS-based Distributed MPC
 ===
 
 ### Environment Setup with Anaconda
