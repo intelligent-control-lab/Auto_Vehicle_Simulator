@@ -13,7 +13,7 @@ import numpy as np
 from cvxopt import matrix, solvers
 import utility
 import optimization as opt
-import DCFS
+import CFS_DMPC_Solver
 import time
 solvers.options['feastol'] = 1e-10
 
@@ -872,7 +872,7 @@ class dcfsAgent(laneKeepingAgent):
         self.deadlock = False
         self.desiredV_copy = desiredV
         
-        self._draw_traj = True
+        self._draw_traj = False
         # for drawing trajectory
         if self._draw_traj:
             lines = LineSegs()
@@ -923,7 +923,7 @@ class dcfsAgent(laneKeepingAgent):
         return self.ref
     
     def DCFSTraj(self,dt = 0):       
-        traj = DCFS.Opt_solver(self.getPos(), self.getRef(), self.veh_index, self.share_traj, self.ts, dt, SCCFS = True)
+        traj = CFS_DMPC_Solver.Opt_solver(self.getPos(), self.getRef(), self.veh_index, self.share_traj, self.ts, dt, SCCFS = True)
         return traj
     
     def getFeedbackControl(self,diffAngle,diffPos,diffPosV):
@@ -931,15 +931,14 @@ class dcfsAgent(laneKeepingAgent):
         steer=-self.thetaGain*diffAngle/(self.getVelocity()+1)-2*self.vehicle.getAngleVelocity()-10*diffPos-10*diffPosV
         return [acceleration,steer]
     
-    def previewController(self,scenario,replanFlag):                
+    def previewController(self,scenario):                
         
         self.getDis(self.targetLane)    # need this function to update self.cordNum
         
-        if replanFlag is True:
-            start = time.perf_counter()
-            self.traj = self.DCFSTraj()
-            end = time.perf_counter()
-            self.planning_time_log = end-start
+        start = time.perf_counter()
+        self.traj = self.DCFSTraj()
+        end = time.perf_counter()
+        self.planning_time_log = end-start
 
         if self._draw_traj:
             self.trajNp.removeNode()    # panda3d draw
@@ -955,10 +954,11 @@ class dcfsAgent(laneKeepingAgent):
             
         
 #        print('Veh:',self.veh_index)
-##        print('Pos:',self.getPos(),self.getPos().shape)
-##        print('Traj:',self.traj)
-##        print('Ref:',np.array(self.getRef()))
+#        print('Pos:',self.getPos(),self.getPos().shape)
+#        print('Traj:',self.traj)
+#        print('Ref:',np.array(self.getRef()))
 #        print('Planning time:',self.planning_time_log)
+#        print(self.planning_time_log)
 #        print('--------------------')
 
                         
@@ -996,120 +996,121 @@ class dcfsAgent(laneKeepingAgent):
             steerV = steeringLimit
         if steerV < -steeringLimit:
             steerV = -steeringLimit
+            
+#        print('acceleration',acceleration)   
 
         return [acceleration,steerV,0]
         
-    def doControl(self,scenario,replanFlag):  
-        return self.previewController(scenario,replanFlag)
+    def doControl(self,scenario):  
+        return self.previewController(scenario)
 
 
-# For centralied MPC   
-class ccfsAgent(laneKeepingAgent):
-    def __init__(self,vGain=0.20,thetaGain=200,desiredV=40,laneId=0):
-        super().__init__(vGain,thetaGain,desiredV,laneId)
-        self.traj = None
-        self.ref_traj = None
-        self.veh_index = None
-        self.horizon = 40
-        self.ts = 0.25
-        self.desiredV_copy = desiredV
-        self.deadlock = False
-        
-        self._draw_traj = True
-        # for drawing trajectory
-        if self._draw_traj:
-            lines = LineSegs()
-            trajNode = lines.create()
-            self.trajNp = NodePath(trajNode)
-
-    def getPreview(self,laneId=0,length=20):
-        return self.vehicle.sensor.getLineInRange(0,length,laneId)
-
-    def getCurrLaneId(self):
-        dev=-self.vehicle.sensor.getCordPos(0)[0]-6
-        if dev<-4:
-            return 0
-        if dev<0:
-            return 1
-        if dev<4:
-            return 2
-        return 3 
-
-    def setVehicleIndex(self,veh_index):
-        self.veh_index = veh_index
-        
-    # Get distance to the planned trajectory
-    def getDis2Traj(self):
-        return np.cross((self.traj[1]-self.traj[0])/np.linalg.norm(self.traj[1]-self.traj[0]),self.getPos()-self.traj[0])
-
-    # Get the angle between the vehicle and the planned trajectory
-    def getAngle(self):
-        return self.vehicle.sensor.getCordAngle2(self.traj[1]-self.traj[0])
-
-
-    def drawTrajectory(self, traj, lines, z):
-        for i in range(len(traj)-1):            
-            lines.moveTo(traj[i][0],traj[i][1],z)
-            lines.drawTo(traj[i+1][0],traj[i+1][1],z)
-
-    # Receive and send traj 
-    def Communication_Receiver(self, traj):
-        if self._draw_traj:
-            self.trajNp.removeNode()    # panda3d draw
-            lines = LineSegs()    # panda3d draw    
-        
-        # Receive traj
-        self.traj = traj       
-        
-        # Draw CFS output trajectory
-        if self._draw_traj:
-            # self.drawTrajectory(preTraj, lines, -0.8)
-            self.drawTrajectory(self.traj, lines, -0.8)
-            trajNode = lines.create()    # panda3d draw
-            self.trajNp = NodePath(trajNode)    # panda3d draw
-            self.trajNp.reparentTo(render)    # panda3d draw
-            
-    def Communication_Sender(self):
-        return self.traj
-    
-    # Get reference traj
-    def getRef(self):
-        self.ref_traj = self.vehicle.sensor.getRefInRange(self.desiredV,self.horizon,self.ts,self.targetLane)
-        return self.ref_traj
-
-    
-    def getFeedbackControl(self,diffAngle,diffPos,diffPosV):
-        acceleration=self.vGain*(self.desiredV*math.cos(diffAngle)-self.getVelocity())
-        steer=-self.thetaGain*diffAngle/(self.getVelocity()+1)-5*self.vehicle.getAngleVelocity()-20*diffPos-20*diffPosV
-        return [acceleration,steer]
-    
-    def previewController(self):      
-          
-        self.getDis(self.targetLane)    # need this function to update self.cordNum
-  
-#        print('Veh:',self.veh_index)
-#        print('Pos:',self.getPos(),self.getPos().shape)
-#        print('Traj:',self.traj)
-#        print('Ref:',np.array(self.getRef()))
-#        print('--------------------')
-        
-        diffPosV = self.vehicle.sensor.getCordVelocity(self.traj[:2])
-        fb=self.getFeedbackControl(self.getAngle(), self.getDis2Traj(), diffPosV)
-        ff = [0,0]
-        acceleration = ff[0] + fb[0]
-        steerV = ff[1] + fb[1]
-        steeringLimit = 45
-
-        if steerV > steeringLimit:
-            steerV = steeringLimit
-        if steerV < -steeringLimit:
-            steerV = -steeringLimit
-           
-            
-        return [acceleration,steerV,0]
-        
-    def doControl(self):
-        return self.previewController()
+## For centralied MPC   
+#class ccfsAgent(laneKeepingAgent):
+#    def __init__(self,vGain=0.20,thetaGain=200,desiredV=40,laneId=0):
+#        super().__init__(vGain,thetaGain,desiredV,laneId)
+#        self.traj = None
+#        self.ref_traj = None
+#        self.veh_index = None
+#        self.horizon = 40
+#        self.ts = 0.25
+#        self.desiredV_copy = desiredV
+#        self.deadlock = False
+#        
+#        self._draw_traj = True
+#        # for drawing trajectory
+#        if self._draw_traj:
+#            lines = LineSegs()
+#            trajNode = lines.create()
+#            self.trajNp = NodePath(trajNode)
+#
+#    def getPreview(self,laneId=0,length=20):
+#        return self.vehicle.sensor.getLineInRange(0,length,laneId)
+#
+#    def getCurrLaneId(self):
+#        dev=-self.vehicle.sensor.getCordPos(0)[0]-6
+#        if dev<-4:
+#            return 0
+#        if dev<0:
+#            return 1
+#        if dev<4:
+#            return 2
+#        return 3 
+#
+#    def setVehicleIndex(self,veh_index):
+#        self.veh_index = veh_index
+#        
+#    # Get distance to the planned trajectory
+#    def getDis2Traj(self):
+#        return np.cross((self.traj[1]-self.traj[0])/np.linalg.norm(self.traj[1]-self.traj[0]),self.getPos()-self.traj[0])
+#
+#    # Get the angle between the vehicle and the planned trajectory
+#    def getAngle(self):
+#        return self.vehicle.sensor.getCordAngle2(self.traj[1]-self.traj[0])
+#
+#
+#    def drawTrajectory(self, traj, lines, z):
+#        for i in range(len(traj)-1):            
+#            lines.moveTo(traj[i][0],traj[i][1],z)
+#            lines.drawTo(traj[i+1][0],traj[i+1][1],z)
+#
+#    # Receive and send traj 
+#    def Communication_Receiver(self, traj):
+#        if self._draw_traj:
+#            self.trajNp.removeNode()    # panda3d draw
+#            lines = LineSegs()    # panda3d draw    
+#        
+#        # Receive traj
+#        self.traj = traj       
+#        
+#        # Draw CFS output trajectory
+#        if self._draw_traj:
+#            # self.drawTrajectory(preTraj, lines, -0.8)
+#            self.drawTrajectory(self.traj, lines, -0.8)
+#            trajNode = lines.create()    # panda3d draw
+#            self.trajNp = NodePath(trajNode)    # panda3d draw
+#            self.trajNp.reparentTo(render)    # panda3d draw
+#            
+#    def Communication_Sender(self):
+#        return self.traj
+#    
+#    # Get reference traj
+#    def getRef(self):
+#        self.ref_traj = self.vehicle.sensor.getRefInRange(self.desiredV,self.horizon,self.ts,self.targetLane)
+#        return self.ref_traj
+#
+#    
+#    def getFeedbackControl(self,diffAngle,diffPos,diffPosV):
+#        acceleration=self.vGain*(self.desiredV*math.cos(diffAngle)-self.getVelocity())
+#        steer=-self.thetaGain*diffAngle/(self.getVelocity()+1)-5*self.vehicle.getAngleVelocity()-20*diffPos-20*diffPosV
+#        return [acceleration,steer]
+#    
+#    def previewController(self):      
+#          
+#        self.getDis(self.targetLane)    # need this function to update self.cordNum
+#  
+##        print('Veh:',self.veh_index)
+##        print('Pos:',self.getPos(),self.getPos().shape)
+##        print('Traj:',self.traj)
+##        print('Ref:',np.array(self.getRef()))
+##        print('--------------------')
+#        
+#        diffPosV = self.vehicle.sensor.getCordVelocity(self.traj[:2])
+#        fb=self.getFeedbackControl(self.getAngle(), self.getDis2Traj(), diffPosV)
+#        ff = [0,0]
+#        acceleration = ff[0] + fb[0]
+#        steerV = ff[1] + fb[1]
+#        steeringLimit = 45
+#
+#        if steerV > steeringLimit:
+#            steerV = steeringLimit
+#        if steerV < -steeringLimit:
+#            steerV = -steeringLimit
+#            
+#        return [acceleration,steerV,0]
+#        
+#    def doControl(self):
+#        return self.previewController()
 
 
         

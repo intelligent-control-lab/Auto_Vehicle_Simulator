@@ -117,6 +117,18 @@ class basicSensor:
         bias=self.bias+disBias[1]
         return np.array([-disBias[0],bias])
 
+    # get distance to lane centerline from the traj: [distanceFromCenterline(left positive)]
+    def getCordDis(self,points,desiredV,horizon,ts,laneId): 
+        preNum = max(self.cordNum-1,0)
+        Dis = np.zeros(len(points))
+        for i in range(len(points)):
+            for j in range(preNum,self.cordNum+int(desiredV*horizon*ts/self.game.precision)+1):
+                if self.isInPoly(j,points[i]):
+                    Dis[i] = self.getDisBiasFromLine(points[i],j,laneId)[0]
+                    preNum = j
+                    break
+        return Dis
+
     # get self vehicle velocity value in world cord
     def getVelocity(self):
         return self.vehicle.getVelocity()
@@ -148,7 +160,7 @@ class basicSensor:
     # get a piece of centerline reference path with dsired velocity, horizon and time step
     def getRefInRange(self,desiredV,horizon,ts,laneId):
         space = math.ceil(ts*desiredV/self.game.precision)
-        print('space:',space,desiredV,ts,self.game.precision)
+#        print('space:',space,desiredV,ts,self.game.precision)
         ref_path = self.lines[laneId][self.cordNum:(self.cordNum+space*horizon):space]
         return ref_path
 
