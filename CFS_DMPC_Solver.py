@@ -90,19 +90,12 @@ def Opt_obj_func(x_ref, cq = [1,0,1], cs = [1,0,1], ts = 1, SCCFS = False, slack
     if SCCFS is True: # slack variables
         x_ref = np.append(x_ref, [0]*2)
         SV = 2
-    
-# =============================================================================
-#     x_rs = np.append(x_rs, [1]) # constant attribute
-
-#     if SCCFS is True: # append slack variables
-#         x_rs = np.append(x_rs, [0] * h * n_ob)
-# =============================================================================
 
     
     I = np.identity(horizon * dimension + SV)
     if SCCFS is True: # slack variables
-        I[-2][-2] = 10
-        I[-1][-1] = 10
+        I[-2][-2] = 50
+        I[-1][-1] = 50
     #    print(I)
 
     # Velocity is used to calculate the velocities at each time step
@@ -125,23 +118,6 @@ def Opt_obj_func(x_ref, cq = [1,0,1], cs = [1,0,1], ts = 1, SCCFS = False, slack
     Q = cq[0] * I + cq[1] * np.dot(np.transpose(Velocity), Velocity) + cq[2] * np.dot(np.transpose(Acceleration), Acceleration)
     S = cs[0] * I + cs[1] * np.dot(np.transpose(Velocity), Velocity) + cs[2] * np.dot(np.transpose(Acceleration), Acceleration)
 
-# =============================================================================
-#     if SCCFS is True:
-#         Q = np.hstack((Q, np.zeros((Q.shape[0], h * n_ob))))
-#         Q = np.vstack((Q, np.zeros((h * n_ob, len(x_rs)))))
-#         S = np.hstack((S, np.zeros((S.shape[0], h * n_ob))))
-#         S = np.vstack((S, np.zeros((h * n_ob, len(x_rs)))))
-# 
-#     C = np.zeros_like(Q)  
-#     if len(xrec) >0 :
-#         C[0,0:4] = np.array([-2,0,1,0])
-#         C[1,0:4] = np.array([0,-2,0,1])
-#         C[0,h * dimension] = xrec[0]
-#         C[1,h * dimension] = xrec[1]
-#         C = np.dot(np.transpose(C), C)/(ts**4)
-#         Cf = np.zeros(Q.shape[0])
-#         Cf[:4] = np.array([-4*xrec[0], -4*xrec[1], 2*xrec[0], 2*xrec[1]])/(ts**4)
-# =============================================================================
 
     # weight
     w1 = 1
@@ -153,14 +129,7 @@ def Opt_obj_func(x_ref, cq = [1,0,1], cs = [1,0,1], ts = 1, SCCFS = False, slack
 #    print(P.shape)
 #    print(q.shape)
 #    print('P:',P)
-#    print('q:',q)
-    
-# =============================================================================
-#     if SCCFS is True:
-#         H[-h * n_ob:, -h * n_ob:] = np.identity(h * n_ob) * slack_w
-#         b = np.vstack((b, np.zeros((h * n_ob, 1))))
-# =============================================================================
-    
+#    print('q:',q)    
     
     P = matrix(P,(len(P),len(P[0])),'d')
     q = matrix(q,(len(q), 1),'d')
@@ -363,148 +332,148 @@ def distancePointMesh(point, vertices):
 
 
 
-# Centralized MPC
-def Centralized_solver(pos, x_ref, veh_num, horizon, dim, ts = 0.02, dt = 0.02, SCCFS = True):
-    '''
-    Generate objective function in the form of 1/2x'Px+q'x. 
-    Inputs:
-        pos: vehicle position with shape [veh_num , dim]
-        x_ref: the reference trajectory chosen as the centerline of the target lane with shape [veh_num , horizon, dim]
-        veh_num: the number of vehicles
-        horizon: the planning horizon
-        dim: 2
-        ts: MPC time step
-        dt: simulation time step
-    Outputs:
-        x_sol: optimal traj
-    '''
-    
-    start = time.perf_counter()
-
-    cq = [1,0,2]
-    cs = [1,0,1]
-    min_dis = 4
-    
-#    # x_ref should be shifted 
-#    start = 1
+## Centralized MPC
+#def Centralized_solver(pos, x_ref, veh_num, horizon, dim, ts = 0.02, dt = 0.02, SCCFS = True):
+#    '''
+#    Generate objective function in the form of 1/2x'Px+q'x. 
+#    Inputs:
+#        pos: vehicle position with shape [veh_num , dim]
+#        x_ref: the reference trajectory chosen as the centerline of the target lane with shape [veh_num , horizon, dim]
+#        veh_num: the number of vehicles
+#        horizon: the planning horizon
+#        dim: 2
+#        ts: MPC time step
+#        dt: simulation time step
+#    Outputs:
+#        x_sol: optimal traj
+#    '''
+#    
+#    start = time.perf_counter()
+#
+#    cq = [1,0,2]
+#    cs = [1,0,1]
+#    min_dis = 4
+#    
+##    # x_ref should be shifted 
+##    start = 1
+##    for i in range(veh_num):
+##        x_ref[i][:horizon-start] = x_ref[i][start:]
+##        x_ref[i][horizon-start:] = x_ref[i][-1]      
+#    
+#    SV = 0 # slack variables
+#    pos = np.reshape(pos, (pos.size, 1))
+#    x_ref = np.reshape(x_ref, (x_ref.size, 1)) # flatten to one dimension for applying qp, in the form of x0,y0,x1,y1,...
+#    if SCCFS is True: # slack variables
+#        x_ref = np.append(x_ref, [0] * veh_num * dim)
+#        SV = veh_num * dim
+##    print(x_ref)
+#
+#    # Objective function formulation
+#    I = np.identity(x_ref.size)
+#    if SCCFS is True: # slack variables
+#        for i in range(SV):
+#            I[veh_num * horizon * dim + i][veh_num * horizon * dim + i] = 10
+##    print(I)
+#
+#    
+#    # Acceleration is used to calculate the accelerations at each time step. See Eq(12) in the FOAD paper
+#    Acceleration = np.zeros((veh_num * (horizon - 2) * dim, veh_num * horizon * dim + SV))
 #    for i in range(veh_num):
-#        x_ref[i][:horizon-start] = x_ref[i][start:]
-#        x_ref[i][horizon-start:] = x_ref[i][-1]      
-    
-    SV = 0 # slack variables
-    pos = np.reshape(pos, (pos.size, 1))
-    x_ref = np.reshape(x_ref, (x_ref.size, 1)) # flatten to one dimension for applying qp, in the form of x0,y0,x1,y1,...
-    if SCCFS is True: # slack variables
-        x_ref = np.append(x_ref, [0] * veh_num * dim)
-        SV = veh_num * dim
-#    print(x_ref)
-
-    # Objective function formulation
-    I = np.identity(x_ref.size)
-    if SCCFS is True: # slack variables
-        for i in range(SV):
-            I[veh_num * horizon * dim + i][veh_num * horizon * dim + i] = 10
-#    print(I)
-
-    
-    # Acceleration is used to calculate the accelerations at each time step. See Eq(12) in the FOAD paper
-    Acceleration = np.zeros((veh_num * (horizon - 2) * dim, veh_num * horizon * dim + SV))
-    for i in range(veh_num):
-        for j in range((horizon - 2) * dim):
-            Acceleration[i * (horizon - 2) * dim + j][j + i * horizon * dim] = 1.0
-            Acceleration[i * (horizon - 2) * dim + j][j + i * horizon * dim + dim] = -2.0
-            Acceleration[i * (horizon - 2) * dim + j][j + i * horizon * dim + 2*dim] = 1.0
-#    print(Acceleration)
-
-    Q = cq[0] * I + cq[2] * np.dot(np.transpose(Acceleration), Acceleration)
-    S = cs[0] * I + cs[2] * np.dot(np.transpose(Acceleration), Acceleration)
-
-
-    # weight
-    w1 = 1
-    w2 = 1
-
-    # Objective function
-    P = w1 * Q + w2 * S 
-    q = -2 * w1 * np.dot(Q, x_ref) 
-#    print(P.shape)
-#    print(q.shape)
-#    print('P:',P)
-#    print('q:',q)    
-    
-    P = matrix(P,(len(P),len(P[0])),'d')
-    q = matrix(q,(len(q), 1),'d')
-
-    end = time.perf_counter()
-    print('Set up:',end-start)
-    
-    # Constraints formulation
-    veh_pair = list(permutations(range(veh_num), 2))
-    veh_pair_num = len(veh_pair)
-    
-    # Inequality constraints: convex feasible set
-    G = np.zeros((horizon * veh_pair_num, veh_num * horizon * dim + SV))
-    h = np.zeros((horizon * veh_pair_num, 1))
-    
-    for i in range(veh_pair_num):   # At each time step
-        ego_index = veh_pair[i][0]
-        obs_index = veh_pair[i][1]        
-        for j in range(horizon):
-            ego_pos = x_ref[ego_index*horizon*dim + j*dim : ego_index*horizon*dim + j*dim+dim]
-            obs_pos = x_ref[obs_index*horizon*dim + j*dim : obs_index*horizon*dim + j*dim+dim]
-
-            line_set = convex_hull_2d_2_feasible_set(ego_pos, obs_pos, obs_vel = [0,0])
-            # line normal vector x, y                
-            x = line_set[0][0][0]                
-            y = line_set[0][0][1]                
-            const = line_set[0][1]
-#            print('normal vector:',x,y)
-#            print('const:',const)
-
-            G[i * horizon + j][ego_index*horizon*dim + j * dim] = -x
-            G[i * horizon + j][ego_index*horizon*dim + j * dim + 1] = -y
-            h[i * horizon + j] = -const-min_dis
-            
-#    print('G:',G.shape,G)
-#    print('h:',h.shape,h)                
-    G = matrix(G,(len(G),len(G[0])),'d')
-    h = matrix(h,(len(h),1),'d')
-    
-    # Equality constraints: fix vehicle's initial position
-    A = np.zeros((veh_num * dim, veh_num * horizon * dim + SV))
-    b = np.zeros((len(A), 1))
-           
-    for i in range(veh_num):
-        for j in range(dim):
-            A[i*dim + j][i*horizon*dim + j] = 1
-    
-            if SCCFS is True: # slack variables
-                A[i*dim + j][veh_num * horizon * dim + i * dim + j] = 1
-           
-    b = pos
-
-#    print(A.shape)
-#    print(b.shape) 
-#    print('A:',A)
-#    print('b:',b)         
-    A = matrix(A,(len(A),len(A[0])),'d')
-    b = matrix(b,(len(b),1),'d')    
-    
-    end = time.perf_counter()
-    print('Constraints:',end-start)
-    
-    # Solver        
-    sol = solvers.qp(P, q, G, h, A, b)
-    
-    end = time.perf_counter()
-    print('Solved time:',end-start)
-    
-    x_sol = sol['x']
-    if SCCFS is True: # slack variables
-        x_sol = sol['x'][:-SV]
-    x_sol = np.reshape(x_sol, (veh_num, horizon, dim))
-    
-    return x_sol
+#        for j in range((horizon - 2) * dim):
+#            Acceleration[i * (horizon - 2) * dim + j][j + i * horizon * dim] = 1.0
+#            Acceleration[i * (horizon - 2) * dim + j][j + i * horizon * dim + dim] = -2.0
+#            Acceleration[i * (horizon - 2) * dim + j][j + i * horizon * dim + 2*dim] = 1.0
+##    print(Acceleration)
+#
+#    Q = cq[0] * I + cq[2] * np.dot(np.transpose(Acceleration), Acceleration)
+#    S = cs[0] * I + cs[2] * np.dot(np.transpose(Acceleration), Acceleration)
+#
+#
+#    # weight
+#    w1 = 1
+#    w2 = 1
+#
+#    # Objective function
+#    P = w1 * Q + w2 * S 
+#    q = -2 * w1 * np.dot(Q, x_ref) 
+##    print(P.shape)
+##    print(q.shape)
+##    print('P:',P)
+##    print('q:',q)    
+#    
+#    P = matrix(P,(len(P),len(P[0])),'d')
+#    q = matrix(q,(len(q), 1),'d')
+#
+#    end = time.perf_counter()
+#    print('Set up:',end-start)
+#    
+#    # Constraints formulation
+#    veh_pair = list(permutations(range(veh_num), 2))
+#    veh_pair_num = len(veh_pair)
+#    
+#    # Inequality constraints: convex feasible set
+#    G = np.zeros((horizon * veh_pair_num, veh_num * horizon * dim + SV))
+#    h = np.zeros((horizon * veh_pair_num, 1))
+#    
+#    for i in range(veh_pair_num):   # At each time step
+#        ego_index = veh_pair[i][0]
+#        obs_index = veh_pair[i][1]        
+#        for j in range(horizon):
+#            ego_pos = x_ref[ego_index*horizon*dim + j*dim : ego_index*horizon*dim + j*dim+dim]
+#            obs_pos = x_ref[obs_index*horizon*dim + j*dim : obs_index*horizon*dim + j*dim+dim]
+#
+#            line_set = convex_hull_2d_2_feasible_set(ego_pos, obs_pos, obs_vel = [0,0])
+#            # line normal vector x, y                
+#            x = line_set[0][0][0]                
+#            y = line_set[0][0][1]                
+#            const = line_set[0][1]
+##            print('normal vector:',x,y)
+##            print('const:',const)
+#
+#            G[i * horizon + j][ego_index*horizon*dim + j * dim] = -x
+#            G[i * horizon + j][ego_index*horizon*dim + j * dim + 1] = -y
+#            h[i * horizon + j] = -const-min_dis
+#            
+##    print('G:',G.shape,G)
+##    print('h:',h.shape,h)                
+#    G = matrix(G,(len(G),len(G[0])),'d')
+#    h = matrix(h,(len(h),1),'d')
+#    
+#    # Equality constraints: fix vehicle's initial position
+#    A = np.zeros((veh_num * dim, veh_num * horizon * dim + SV))
+#    b = np.zeros((len(A), 1))
+#           
+#    for i in range(veh_num):
+#        for j in range(dim):
+#            A[i*dim + j][i*horizon*dim + j] = 1
+#    
+#            if SCCFS is True: # slack variables
+#                A[i*dim + j][veh_num * horizon * dim + i * dim + j] = 1
+#           
+#    b = pos
+#
+##    print(A.shape)
+##    print(b.shape) 
+##    print('A:',A)
+##    print('b:',b)         
+#    A = matrix(A,(len(A),len(A[0])),'d')
+#    b = matrix(b,(len(b),1),'d')    
+#    
+#    end = time.perf_counter()
+#    print('Constraints:',end-start)
+#    
+#    # Solver        
+#    sol = solvers.qp(P, q, G, h, A, b)
+#    
+#    end = time.perf_counter()
+#    print('Solved time:',end-start)
+#    
+#    x_sol = sol['x']
+#    if SCCFS is True: # slack variables
+#        x_sol = sol['x'][:-SV]
+#    x_sol = np.reshape(x_sol, (veh_num, horizon, dim))
+#    
+#    return x_sol
 
 
 

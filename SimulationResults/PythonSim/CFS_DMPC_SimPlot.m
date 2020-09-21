@@ -22,11 +22,25 @@ for i=0:num_veh-1
     veh_traj = traj_log(:,2*i+1:2*i+2);
     for j=1:horizon-1
         plot(veh_traj(j:j+1,1),veh_traj(j:j+1,2),'Linewidth',1.5,'color',(1-j/2/horizon)*color(i+1,:));
-        if mod(j,10)==0
-            plot(veh_traj(j,1),veh_traj(j,2),'*','markersize',6,'color',(1-j/2/horizon)*color(i+1,:));
+%         if mod(j,15)==0
+%             plot(veh_traj(j,1),veh_traj(j,2),'*','markersize',6,'color',(1-j/2/horizon)*color(i+1,:));
+%             hold on;
+%         end
+    end
+end
+
+for i=0:num_veh-1
+    veh_traj = traj_log(:,2*i+1:2*i+2);
+    for j=1:horizon-1
+        if j==30
+            plot(veh_traj(j,1),veh_traj(j,2),'x','markersize',8,'color',(1-j/2/horizon)*color(i+1,:));
             hold on;
         end
-    hold on
+        if mod(j,45)==0
+            plot(veh_traj(j,1),veh_traj(j,2),'*','markersize',6,'color',(1-j/2/horizon)*color(i+1,:));
+            hold on;
+        end        
+        hold on
     end
 end
 
@@ -39,30 +53,30 @@ end
 xlabel('x(m)');
 ylabel('y(m)');
 legend('Vehicle 1','Vehicle 2','Vehicle 3','Vehicle 4');
-axis([-30 30 0 50])
+axis([-30 30 -10 60])
 
 
-% 
-figure(2)
-T_r = 0.1;
-t = 0:T_r:(horizon-2)*T_r;
-for i=0:num_veh-1
-    vel = [];
-    veh_traj = traj_log(:,2*i+1:2*i+2);
-    for j=1:horizon-1
-        vel(j) = norm(veh_traj(j+1,:)-veh_traj(j,:))/T_r;
-%         plot(veh_traj(j:j+1,1),veh_traj(j:j+1,2),'Linewidth',1.5,'color',(1-j/2/horizon)*color(i+1,:));
-%         if mod(j,5)==0
-%             plot(veh_traj(j,1),veh_traj(j,2),'*','markersize',6,'color',(1-j/2/horizon)*color(i+1,:));
-%             hold on;
-    end
-    plot(t,vel,'Linewidth',1.5,'color',color(i+1,:));
-    hold on
-    grid on
-end
-xlabel('Time (s)');
-ylabel('Speed (m/s)');
-legend('Vehicle 1','Vehicle 2','Vehicle 3','Vehicle 4');
+% % Speed
+% figure(2)
+% T_r = 0.1;
+% t = 0:T_r:(horizon-2)*T_r;
+% for i=0:num_veh-1
+%     vel = [];
+%     veh_traj = traj_log(:,2*i+1:2*i+2);
+%     for j=1:horizon-1
+%         vel(j) = norm(veh_traj(j+1,:)-veh_traj(j,:))/T_r;
+% %         plot(veh_traj(j:j+1,1),veh_traj(j:j+1,2),'Linewidth',1.5,'color',(1-j/2/horizon)*color(i+1,:));
+% %         if mod(j,5)==0
+% %             plot(veh_traj(j,1),veh_traj(j,2),'*','markersize',6,'color',(1-j/2/horizon)*color(i+1,:));
+% %             hold on;
+%     end
+%     plot(t,vel,'Linewidth',1.5,'color',color(i+1,:));
+%     hold on
+%     grid on
+% end
+% xlabel('Time (s)');
+% ylabel('Speed (m/s)');
+% legend('Vehicle 1','Vehicle 2','Vehicle 3','Vehicle 4');
 
 
 %  
@@ -96,7 +110,7 @@ ylabel('y(m)');
 legend('Vehicle 1','Vehicle 2','Vehicle 3','Vehicle 4');
 axis([-15 15 15 35]);
 
-
+% 
 % 
 % %% Unstructured Road
 % load('CFS_DMPC_UnstructuredRoad.mat');

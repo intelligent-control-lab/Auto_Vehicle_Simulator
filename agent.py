@@ -997,7 +997,7 @@ class dcfsAgent(laneKeepingAgent):
         if steerV < -steeringLimit:
             steerV = -steeringLimit
             
-#        print('acceleration',acceleration)   
+#        print(acceleration)   
 
         return [acceleration,steerV,0]
         

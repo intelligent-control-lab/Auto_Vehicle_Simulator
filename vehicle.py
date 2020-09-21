@@ -191,10 +191,10 @@ class basicVehicle(BulletVehicle):
     brakeForce=agentInput[2]
     #print(brakeForce)
 
-    if engineForce>20*accGain:
-        engineForce=20*accGain
-    if engineForce<-35*accGain:
-        engineForce=-35*accGain   
+    if engineForce>5*accGain:
+        engineForce=5*accGain
+    if engineForce<-5*accGain:
+        engineForce=-5*accGain   
         
     steeringLimit=45
 

@@ -346,7 +346,7 @@ class Game(DirectObject):
   def doChangeDesigned(self):
       print('Do lang changing')
       if self.scenario is 0:
-          self.agents[0].desiredV = 40
+          self.agents[0].desiredV = 50
           
       elif self.scenario is 1:
           self.vehicles[0].agent.targetLane=2

@@ -176,7 +176,7 @@ while k <= k_max:
 length = len(traj_log)
 num_time_step = int(length/(dim*num_veh))
 traj_log = np.reshape(traj_log,(num_time_step,dim*num_veh))      
-io.savemat('CFS_DMPC_Traj.mat', {'traj_log': traj_log})
+#io.savemat('CFS_DMPC_Traj.mat', {'traj_log': traj_log})
     
 
 # Plot
