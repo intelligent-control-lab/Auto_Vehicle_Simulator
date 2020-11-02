@@ -60,7 +60,7 @@ class Game(DirectObject):
     self.texLength=10
     self.laneNum=4
     self.radiu=500
-    road=basicFreeWay(100,self.radiu,1,self.precision,2) # generating a piece of freeway
+    road=basicFreeWay(90,self.radiu,1,self.precision,2) # generating a piece of freeway
     #road=straightCenter(np.array([0,0]),math.pi/2,2000,2)  # generating a straight way
     self.segLine=road.getLine() # the centerLine
     self.road=roadGenerator(np.array([0,-1]),8,2,road.getFollowing(),self.segLine,-1,self.texLength,self.precision) # generate road polygon
@@ -96,8 +96,8 @@ class Game(DirectObject):
     # Overtaking
     if self.scenario is 0:      
       desiredV=10
-      self.horizon = 30
-      self.ts = 0.2
+      self.horizon = 25
+      self.ts = 0.1
       # car 0 **
       self.initAV.append([0,2,desiredV])
       self.agents.append(dcfsAgent(vGain=5,thetaGain=50,desiredV=desiredV,laneId=2))
@@ -203,99 +203,7 @@ class Game(DirectObject):
       for i in range(num_veh):
           self.initAV.append([6*i,-2,desiredV])
           self.agents.append(dcfsAgent(vGain=5,thetaGain=50,desiredV=desiredV,laneId=2))          
-
-#    # C-MPC  
-#    elif self.planning_mode is 1:
-#        # Overtaking
-#        if self.scenario is 0:      
-#          desiredV=20
-#          self.horizon = 40
-#          self.ts = 0.05
-#          # car 0 **
-#          self.initAV.append([0,-2,desiredV])
-#          self.agents.append(ccfsAgent(vGain=50,thetaGain=1000,desiredV=desiredV,laneId=1))
-#          # car 1 **
-#          self.initAV.append([10,-2,desiredV])
-#          self.agents.append(ccfsAgent(vGain=50,thetaGain=1000,desiredV=desiredV,laneId=1))
-##          # car 2 **
-##          self.initAV.append([30,2,desiredV])
-##          self.agents.append(ccfsAgent(vGain=5,thetaGain=50,desiredV=desiredV,laneId=2))
-##          # car 3 **
-##          self.initAV.append([40,-6,desiredV])
-##          self.agents.append(ccfsAgent(vGain=5,thetaGain=50,desiredV=desiredV,laneId=0))    
-##          # car 4 **
-##          self.initAV.append([60,-2,desiredV])
-##          self.agents.append(ccfsAgent(vGain=5,thetaGain=50,desiredV=desiredV,laneId=1))
-#
-#
-#        # Crossing: collision due to no adding priority constraints. Ref: DSCC20
-#        elif self.scenario is 1:
-#          desiredV=10   
-#          self.horizon = 30
-#          self.ts = 0.02
-#          # car 0 **
-#          self.initAV.append([0,-6,desiredV])
-#          self.agents.append(ccfsAgent(vGain=5,thetaGain=50,desiredV=desiredV,laneId=0))
-#          # car 1 **
-#          self.initAV.append([0,2,desiredV])
-#          self.agents.append(ccfsAgent(vGain=5,thetaGain=50,desiredV=desiredV,laneId=2))    
-#
-#    
-#        # Platoon formation
-#        elif self.scenario is 2:
-#          desiredV=20      
-#          self.horizon = 20
-#          self.ts = 0.05
-#          # car 0 **
-#          self.initAV.append([0,-6,desiredV])
-#          self.agents.append(ccfsAgent(vGain=5,thetaGain=50,desiredV=desiredV,laneId=0))
-#          # car 1 **
-#          self.initAV.append([6,2,desiredV])
-#          self.agents.append(ccfsAgent(vGain=5,thetaGain=50,desiredV=desiredV,laneId=2))
-#          # car 2 **
-#          self.initAV.append([12,-6,desiredV])
-#          self.agents.append(ccfsAgent(vGain=5,thetaGain=50,desiredV=desiredV,laneId=0)) 
-#          # car 3 **
-#          self.initAV.append([18,2,desiredV])
-#          self.agents.append(ccfsAgent(vGain=5,thetaGain=50,desiredV=desiredV,laneId=2))    
-#    
-#    
-#        # Platoon formation: no deadlock
-#        elif self.scenario is 3:      
-#          desiredV=20   
-#          self.horizon = 20
-#          self.ts = 0.05
-#          # car 0 **
-#          self.initAV.append([0,-6,desiredV])
-#          self.agents.append(ccfsAgent(vGain=5,thetaGain=50,desiredV=desiredV,laneId=0))
-#          # car 1 **
-#          self.initAV.append([0,2,desiredV])
-#          self.agents.append(ccfsAgent(vGain=5,thetaGain=50,desiredV=desiredV,laneId=2))
-#          # car 2 **
-##          self.initAV.append([0,6,desiredV])
-##          self.agents.append(ccfsAgent(vGain=5,thetaGain=50,desiredV=desiredV,laneId=3))
-#
-#
-##        # Merging
-##        elif self.scenario is 4:      
-##          desiredV=10   
-##          self.horizon = 25
-##          self.ts = 0.1   
-##          # car 0 **
-##          self.initAV.append([0,-6,desiredV])
-##          self.agents.append(ccfsAgent(vGain=5,thetaGain=50,desiredV=desiredV,laneId=0))          
-##          # car 1 **
-##          self.initAV.append([0,2,desiredV])
-##          self.agents.append(ccfsAgent(vGain=5,thetaGain=50,desiredV=desiredV,laneId=2))
-##          # car 2 **
-##          self.initAV.append([6,-6,desiredV])
-##          self.agents.append(ccfsAgent(vGain=5,thetaGain=50,desiredV=desiredV,laneId=0)) 
-##          # car 3 **
-##          self.initAV.append([6,2,desiredV])
-##          self.agents.append(ccfsAgent(vGain=5,thetaGain=50,desiredV=desiredV,laneId=2)) 
-#                                 
-#    self.pos = np.zeros((self.num_veh, self.dim))
-#    self.ref_path = np.zeros((self.num_veh, self.horizon, self.dim))
+          
           
     self.replanFlag = False
     self.traj_log = []
@@ -512,63 +420,6 @@ class Game(DirectObject):
 
 
 
-#  # C-MPC    
-#  def Central_planner(self):    
-#      if self.replanFlag is True:
-#          self.Central_planner_replan()
-#          self.replanFlag = False
-#      else:          
-#          forwardFlag = False
-#          for i in range(len(self.initAV)):
-#            if self.agents[i].traj is not None and len(self.agents[i].traj)>2:
-#              pos = self.agents[i].getPos()
-#              slope = self.agents[i].traj[1] - self.agents[i].traj[0]
-#              constant = -slope.dot(self.agents[i].traj[0])
-#              if (slope.dot(self.agents[i].traj[1])+constant)*(slope.dot(pos)+constant) > 0:
-#                  forwardFlag = True
-#                  break
-#            else:
-#              self.replanFlag = True
-#              break
-#          if forwardFlag is True:
-#            for i in range(len(self.initAV)):
-#              self.agents[i].traj = self.agents[i].traj[1:]  
-#                            
-#      # Control
-#      for i in range(len(self.initAV)):
-#          self.vehicles[i].controlInput(self.vehicles[i].agent.doControl())               
-#  
-#
-#  
-#  def Central_planner_replan(self):
-#      start = time.perf_counter()
-#      
-##      # Receive
-##      for i in range(len(self.initAV)):
-##          self.shared_path[i] = self.agents[i].Communication_Sender()
-#      
-#      # Get position
-#      for i in range(len(self.initAV)):
-#          self.pos[i] = self.agents[i].getPos()
-#      # Get ref traj
-#      for i in range(len(self.initAV)):
-#          self.ref_path[i] = self.agents[i].getRef()
-#      print('Ref:',self.ref_path)
-#      
-#      # Planning
-#      self.shared_path = DCFS.Centralized_solver(self.pos, self.ref_path, self.num_veh, self.horizon, self.dim)
-#          
-#      end = time.perf_counter()
-#      print('Planning time:',end-start)
-#      
-#      # Send traj
-#      for i in range(len(self.initAV)):
-#          self.agents[i].Communication_Receiver(self.shared_path[i]) 
-#      
-##      # Control
-##      for i in range(len(self.initAV)):
-##          self.vehicles[i].controlInput(self.vehicles[i].agent.doControl()) 
-
 
     
   def Communication(self):
@@ -584,18 +435,7 @@ class Game(DirectObject):
   def update(self, task):
 #    dt = globalClock.getDt()
 #    print(dt) # ~ 0.02s
-    
-#    if self.planning_mode is 0:         
-#        if self.replanFlag is False:
-#            print('False')                 
-#            for i in range(len(self.initAV)):              
-#                if self.agents[i].traj is not None and len(self.agents[i].traj)>2:
-#                    pos = self.agents[i].getPos()
-#                    slope = self.agents[i].traj[1] - self.agents[i].traj[0]
-#                    constant = -slope.dot(self.agents[i].traj[0])
-#                    if (slope.dot(self.agents[i].traj[1])+constant)*(slope.dot(pos)+constant) > 0:
-#                        self.replanFlag = True
-#                        break                                   
+                                     
         
     # Share path
     self.Communication()

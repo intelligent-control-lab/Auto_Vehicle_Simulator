@@ -5,7 +5,7 @@ color = [[0 0.75 1];[1 0 0];[0 1 0];[0.5 0.4 0.8];[0.9 0.9 0.1];[0 0 1]];
 
 %% Intersection
 load('CFS_DMPC_Intersection.mat');
-% traj_log = traj_log(20:70,:);
+traj_log = traj_log(1:35,:);
 % Plot traj
 [horizon, dim_num_veh] = size(traj_log);
 dim = 2;
@@ -32,12 +32,12 @@ end
 for i=0:num_veh-1
     veh_traj = traj_log(:,2*i+1:2*i+2);
     for j=1:horizon-1
-        if j==30
-            plot(veh_traj(j,1),veh_traj(j,2),'x','markersize',8,'color',(1-j/2/horizon)*color(i+1,:));
-            hold on;
-        end
-        if mod(j,45)==0
-            plot(veh_traj(j,1),veh_traj(j,2),'*','markersize',6,'color',(1-j/2/horizon)*color(i+1,:));
+%         if mod(j,5)==0
+%             plot(veh_traj(j,1),veh_traj(j,2),'x','markersize',8,'color',(1-j/2/horizon)*color(i+1,:));
+%             hold on;
+%         end
+        if mod(j,5)==0
+            plot(veh_traj(j,1),veh_traj(j,2),'*','color',(1-j/2/horizon)*color(i+1,:));
             hold on;
         end        
         hold on
@@ -53,7 +53,7 @@ end
 xlabel('x(m)');
 ylabel('y(m)');
 legend('Vehicle 1','Vehicle 2','Vehicle 3','Vehicle 4');
-axis([-30 30 -10 60])
+axis([-40 40 -5 55])
 
 
 % % Speed
@@ -81,7 +81,7 @@ axis([-30 30 -10 60])
 
 %  
 figure(3)
-load('CFS_DMPC_Intersection_36.mat');
+load('CFS_DMPC_Intersection_20.mat');
 % Plot traj
 [num_veh, ~, ~] = size(traj_sol);
 
@@ -95,20 +95,24 @@ for i=1:num_veh
         traj = squeeze(traj_sol(i,:,:));
         plot(traj(:,1),traj(:,2),'Linewidth',1.5,'color',color(i,:));
         hold on
+    for j = 3:3:10
+        plot(traj(j,1),traj(j,2),'x','markersize',8,'color',color(i,:));
+        hold on;
+    end        
 end
 
 plot([2,2],[15,35],'--','color',color(1,:));
 hold on;
 plot([-2,-2],[15,35],'--','color',color(2,:));
 hold on;
-plot([-15,15],[23,23],'--','color',color(3,:));
+plot([-35,35],[23,23],'--','color',color(3,:));
 hold on;
-plot([-15,15],[27,27],'--','color',color(4,:));
+plot([-35,35],[27,27],'--','color',color(4,:));
 hold on;
 xlabel('x(m)');
 ylabel('y(m)');
 legend('Vehicle 1','Vehicle 2','Vehicle 3','Vehicle 4');
-axis([-15 15 15 35]);
+axis([-35 35 15 35]);
 
 % 
 % 
