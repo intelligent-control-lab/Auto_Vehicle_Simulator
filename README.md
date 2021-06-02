@@ -15,8 +15,21 @@ Configure `self.scenario` in main.py for different scenarios. Use keyboard "c" t
 
 
 ### Simulation
-#### Crossing
+*　#### Crossing
 ![image](https://github.com/intelligent-control-lab/Auto_Vehicle_Simulator/blob/Distributed-CFS/SimulationResults/Panda3dSim/Corssing.gif)
+
+
+*　#### Merging
+![image](https://github.com/intelligent-control-lab/Auto_Vehicle_Simulator/blob/Distributed-CFS/SimulationResults/Panda3dSim/Merging.gif)
+
+
+*　#### Platoon formation
+![image](https://github.com/intelligent-control-lab/Auto_Vehicle_Simulator/blob/Distributed-CFS/SimulationResults/Panda3dSim/Platoon.gif)
+
+
+*　#### Overtaking
+![image](https://github.com/intelligent-control-lab/Auto_Vehicle_Simulator/blob/Distributed-CFS/SimulationResults/Panda3dSim/Overtaking.gif)
+
 
 ### References
 H. Zhou, and C. Liu,  "Distributed motion coordination using convex feasible set algorithm", Preprint: https://arxiv.org/abs/2101.07994
