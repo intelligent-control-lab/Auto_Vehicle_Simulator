@@ -1,6 +1,10 @@
 Auto Vehicle Simulator - CFS-based Distributed MPC
 ===
 
+### About CFS-DMPC
+This work is built on Auto Vehicle Simulator. We implement convex feasible set (CFS) algorithm in distributed MPC to solve multi-vehicle coordination efficiently. We propose a deadlock resolution by changing vehicle’s desire speed.
+
+
 ### Environment Setup with Anaconda
 ```
 conda create -n avsim python=3.7
