@@ -15,4 +15,4 @@ Configure `self.scenario` in main.py for different scenarios. Use keyboard "c" t
 
 
 ### References
-H. Zhou, and C. Liu,  "Distributed motion coordination using convex feasible set algorithm"
+H. Zhou, and C. Liu,  "Distributed motion coordination using convex feasible set algorithm", Preprint: https://arxiv.org/abs/2101.07994
