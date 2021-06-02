@@ -16,18 +16,22 @@ Configure `self.scenario` in main.py for different scenarios. Use keyboard "c" t
 
 ### Simulation
 1. Crossing
+
 ![image](https://github.com/intelligent-control-lab/Auto_Vehicle_Simulator/blob/Distributed-CFS/SimulationResults/Panda3dSim/Corssing.gif)
 
 
 2. Merging
+
 ![image](https://github.com/intelligent-control-lab/Auto_Vehicle_Simulator/blob/Distributed-CFS/SimulationResults/Panda3dSim/Merging.gif)
 
 
 3. Platoon formation
+
 ![image](https://github.com/intelligent-control-lab/Auto_Vehicle_Simulator/blob/Distributed-CFS/SimulationResults/Panda3dSim/Platoon.gif)
 
 
 4. Overtaking
+
 ![image](https://github.com/intelligent-control-lab/Auto_Vehicle_Simulator/blob/Distributed-CFS/SimulationResults/Panda3dSim/Overtaking.gif)
 
 
